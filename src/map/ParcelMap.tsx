@@ -8,9 +8,12 @@ import {
 } from 'react'
 import { fetchParcelsInBbox } from '../lib/arcgis'
 import type { ParcelFeature } from '../lib/types'
+import { fetchZoningMap, ZONING_FILL_COLOR, ZONING_LEGEND } from '../lib/zoning'
 
 const MIN_ZOOM = 16
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
+const ZONING_SOLID_OPACITY = 0.82
+const ZONING_ZOOMED_OPACITY = 0.2
 
 export type Basemap = 'normal' | 'satellite' | 'terrain'
 
@@ -68,12 +71,16 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
     const debounceRef = useRef<number | null>(null)
     const selectedRef = useRef<ParcelFeature | null>(selectedFeature)
     const [basemap, setBasemap] = useState<Basemap>('satellite')
+    const [zoningVisible, setZoningVisible] = useState(true)
     const basemapRef = useRef<Basemap>(basemap)
+    const zoningVisibleRef = useRef(true)
+    const zoningDataRef = useRef<GeoJSON.FeatureCollection>(EMPTY)
 
     onSelectRef.current = onSelectPin
     onZoomRef.current = onZoomChange
     selectedRef.current = selectedFeature
     basemapRef.current = basemap
+    zoningVisibleRef.current = zoningVisible
 
     useImperativeHandle(ref, () => ({
       flyToFeature(feature) {
@@ -160,8 +167,15 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
         map.getCanvas().style.cursor = ''
       }
 
+      const applyZoning = () => {
+        const source = map.getSource('zoning') as GeoJSONSource | undefined
+        source?.setData(zoningDataRef.current)
+      }
+
       const onStyleReady = () => {
-        addParcelLayers(map, basemapRef.current)
+        addMapLayers(map, basemapRef.current)
+        applyZoning()
+        setZoningLayerVisibility(map, zoningVisibleRef.current)
         applySelected()
         loadParcels()
         map.off('click', 'parcels-fill', onParcelClick)
@@ -173,6 +187,16 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
       }
       map.on('style.load', onStyleReady)
       map.on('moveend', scheduleLoad)
+
+      void fetchZoningMap()
+        .then((fc) => {
+          zoningDataRef.current = fc
+          const source = mapRef.current?.getSource('zoning') as GeoJSONSource | undefined
+          source?.setData(fc)
+        })
+        .catch((err: unknown) => {
+          console.error(err)
+        })
 
       return () => {
         abortRef.current?.abort()
@@ -193,6 +217,12 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
       )
     }, [selectedFeature])
 
+    useEffect(() => {
+      const map = mapRef.current
+      if (!map?.isStyleLoaded()) return
+      setZoningLayerVisibility(map, zoningVisible)
+    }, [zoningVisible])
+
     function switchBasemap(next: Basemap) {
       if (next === basemapRef.current) return
       basemapRef.current = next
@@ -203,17 +233,43 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
     return (
       <div className="map-wrap">
         <div ref={containerRef} className="map-canvas" aria-label="Pittsburgh parcel map" />
-        <div className="basemap-toggle" role="group" aria-label="Map view">
-          {MODES.map((mode) => (
-            <button
-              key={mode.id}
-              type="button"
-              aria-pressed={basemap === mode.id}
-              onClick={() => switchBasemap(mode.id)}
-            >
-              {mode.label}
-            </button>
-          ))}
+        <div className="map-corner">
+          <aside className="zoning-legend" aria-label="Zoning legend">
+            <div className="zoning-legend-header">
+              <span>Zoning</span>
+              <button
+                type="button"
+                className="zoning-legend-toggle"
+                aria-expanded={zoningVisible}
+                aria-label={zoningVisible ? 'Minimize zoning' : 'Show zoning'}
+                onClick={() => setZoningVisible((visible) => !visible)}
+              >
+                {zoningVisible ? '−' : '+'}
+              </button>
+            </div>
+            {zoningVisible && (
+              <ul>
+                {ZONING_LEGEND.map((item) => (
+                  <li key={item.label}>
+                    <span style={{ background: item.color }} />
+                    {item.label}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </aside>
+          <div className="basemap-toggle" role="group" aria-label="Map view">
+            {MODES.map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                aria-pressed={basemap === mode.id}
+                onClick={() => switchBasemap(mode.id)}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     )
@@ -240,13 +296,63 @@ const PARCEL_PAINT: Record<Basemap, typeof LIGHT_PARCEL_PAINT> = {
   },
 }
 
-function addParcelLayers(map: Map, basemap: Basemap) {
+function addMapLayers(map: Map, basemap: Basemap) {
   const paint = PARCEL_PAINT[basemap]
+  if (!map.getSource('zoning')) {
+    map.addSource('zoning', { type: 'geojson', data: EMPTY })
+  }
   if (!map.getSource('parcels')) {
     map.addSource('parcels', { type: 'geojson', data: EMPTY })
   }
   if (!map.getSource('selected')) {
     map.addSource('selected', { type: 'geojson', data: EMPTY })
+  }
+  if (!map.getLayer('zoning-fill')) {
+    map.addLayer({
+      id: 'zoning-fill',
+      type: 'fill',
+      source: 'zoning',
+      paint: {
+        'fill-color': ZONING_FILL_COLOR,
+        'fill-opacity': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          MIN_ZOOM - 0.35,
+          ZONING_SOLID_OPACITY,
+          MIN_ZOOM,
+          ZONING_ZOOMED_OPACITY,
+        ],
+      },
+    })
+  }
+  if (!map.getLayer('zoning-line')) {
+    map.addLayer({
+      id: 'zoning-line',
+      type: 'line',
+      source: 'zoning',
+      paint: {
+        'line-color': '#4e4e4e',
+        'line-width': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          MIN_ZOOM - 0.35,
+          0.8,
+          MIN_ZOOM,
+          0.4,
+        ],
+        'line-opacity': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          MIN_ZOOM - 0.35,
+          0.85,
+          MIN_ZOOM,
+          0.25,
+        ],
+      },
+    })
   }
   if (!map.getLayer('parcels-fill')) {
     map.addLayer({
@@ -297,6 +403,16 @@ function addParcelLayers(map: Map, basemap: Basemap) {
   map.setPaintProperty('parcels-line', 'line-color', paint.line)
   map.setPaintProperty('parcels-line', 'line-width', paint.lineWidth)
   map.setPaintProperty('selected-line', 'line-color', paint.selectedLine)
+}
+
+function setZoningLayerVisibility(map: Map, visible: boolean) {
+  const visibility = visible ? 'visible' : 'none'
+  if (map.getLayer('zoning-fill')) {
+    map.setLayoutProperty('zoning-fill', 'visibility', visibility)
+  }
+  if (map.getLayer('zoning-line')) {
+    map.setLayoutProperty('zoning-line', 'visibility', visibility)
+  }
 }
 
 function bboxOf(feature: ParcelFeature): [[number, number], [number, number]] {
