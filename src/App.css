@@ -75,10 +75,13 @@ h1, h2, h3 { font-family: Manrope, 'Segoe UI', sans-serif; }
 .empty-report p { font-size: 12px; line-height: 1.6; }
 .site-address { color: #4b6276; font-size: 12px; line-height: 1.45; margin-bottom: 13px; }
 .status { font-size: 12px; color: #536a7e; }
-.score-state { background: #fff1e7; border: 1px solid #f4dbc9; border-radius: 5px; padding: 14px 13px; display: flex; gap: 12px; align-items: flex-start; }
-.score-icon { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: #bf5128; color: white; font-weight: 800; font-size: 13px; }
-.score-state strong { color: #a84423; font: 800 15px Manrope, sans-serif; }
+.score-state { background: #eef2f5; border: 1px solid #d8e1e8; border-radius: 5px; padding: 14px 13px; display: flex; gap: 12px; align-items: flex-start; }
+.score-icon { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: #5e7283; color: white; font-weight: 800; font-size: 13px; }
+.score-state strong { color: #284258; font: 800 15px Manrope, sans-serif; }
 .score-state p { color: #41566a; line-height: 1.45; margin: 5px 0 0; font-size: 11px; }
+.rating-guide { border-bottom: 1px solid #e1e8ed; padding: 10px 0; font-size: 11px; color: #445d70; line-height: 1.5; }
+.rating-guide summary { cursor: pointer; color: #1c5876; font-weight: 700; }
+.rating-guide p { margin: 8px 0 0; }
 .scenario-summary { margin: 13px 0 0; display: flex; flex-direction: column; gap: 3px; font-size: 11px; }
 .scenario-summary span { color: #647b8b; }
 .scenario-summary strong { font-size: 12px; }
