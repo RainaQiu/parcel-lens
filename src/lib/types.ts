@@ -72,6 +72,7 @@ export type SelectedParcel = {
   feature: ParcelFeature
   assessment: AssessmentRow | null
   zoning: ZoningInfo | null
+  ldes?: LdesEvidence
 }
 
 export type Barrier = {
@@ -84,8 +85,75 @@ export type Barrier = {
 }
 
 export type ParcelScore = {
-  score: number
-  band: 'easier' | 'mixed' | 'harder'
+  score: number | null
+  band: 'easier' | 'mixed' | 'harder' | 'unrated'
   barriers: Barrier[]
   unscored: string[]
+  scoreVersion: 'LDES-v2.0'
+  scoreStatus: 'ASSESSED' | 'INSUFFICIENT_DATA'
+  suitabilityScore: number | null
+  suitabilityBand: SuitabilityBand
+  developmentPotentialBand: DevelopmentPotentialBand
+  overallResult: OverallResult | null
+  availabilityStatus: 'NOT_ASSESSED'
+  financialFeasibilityStatus: 'NOT_ASSESSED'
+  deliveryTimingStatus: 'NOT_ASSESSED'
+  missingRequired: string[]
+  assumptions: string[]
+}
+
+export type SuitabilityBand = 'green' | 'amber' | 'red' | 'unrated'
+
+export type DevelopmentPotentialBand = 'green' | 'amber' | 'red' | 'unknown'
+
+export type OverallResult =
+  | 'CURRENTLY_UNSUITABLE'
+  | 'SELECTED_SCENARIO_DOES_NOT_FIT'
+  | 'NEEDS_FURTHER_EVIDENCE'
+  | 'STRONG_CANDIDATE'
+  | 'CANDIDATE_WITH_CONDITIONS'
+  | 'MAJOR_CONSTRAINTS'
+
+export type ZoningScenarioPath = 'P' | 'A' | 'S' | 'C' | 'NOT_PERMITTED' | 'UNKNOWN'
+
+export type FloodCategory = 'OUTSIDE' | '0.2_PERCENT' | 'SFHA' | 'FLOODWAY'
+
+/** Optional verified evidence collected by the v2 GIS/rules pipeline. */
+export type LdesEvidence = {
+  cityVerified?: boolean
+  polygonVerified?: boolean
+  allZoningDistrictsVerified?: boolean
+  overlayHandled?: boolean
+  scenarioPath?: ZoningScenarioPath
+  scenarioId?: string
+  targetUnits?: number
+  slopeOverlapPct?: number
+  landslideIntersects?: boolean
+  underminedIntersects?: boolean
+  floodCategory?: FloodCategory
+  environmentalQueriesSuccessful?: boolean
+  historicQueriesSuccessful?: boolean
+  historicDistrict?: boolean
+  individualHistoricSite?: boolean
+  activeViolation?: boolean
+  activeCondemned?: boolean
+  potential?: {
+    capacityLowerBound: number
+    capacityUpperBound: number
+    criticalInputsComplete: boolean
+    assumptions?: string[]
+  }
+}
+
+export type JevEvidenceCandidate = {
+  parcelId: string
+  recordId: string
+  sourceUrl: string
+  recordDate: string | null
+  category: 'permit' | 'zba' | 'violation' | 'other'
+  issueCode: string | null
+  excerpt: string
+  confidence: number
+  modelVersion: string
+  requiresHumanReview: true
 }

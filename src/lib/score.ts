@@ -1,221 +1,204 @@
-/** Deterministic Development Ease Score. Rubric: docs/Development_Ease_Score.md */
-import { acresFrom } from './format'
-import type { Barrier, ParcelScore, SelectedParcel } from './types'
-
-const HIGH_ZONING = new Set([
-  'R1D',
-  'H',
-  'P',
-  'EMI',
-  'SP',
-  'GT',
-  'OPR',
-  'GPR',
-  'UPR',
-  'RIV',
-])
-
-const EASIER_ZONING = new Set(['LNC', 'UNC'])
-
-const SMALL_LOT_SQFT = 2500
-const SQFT_PER_ACRE = 43560
+/** Deterministic LDES v2.0 scoring. See docs/Development_Ease_Score.md. */
+import type {
+  Barrier,
+  DevelopmentPotentialBand,
+  JevEvidenceCandidate,
+  LdesEvidence,
+  OverallResult,
+  ParcelScore,
+  SelectedParcel,
+  SuitabilityBand,
+  ZoningScenarioPath,
+} from './types'
 
 const UNSCORED = [
-  'FEMA flood zone',
-  'Steep slope overlay',
-  'PLI / Building & Development permits',
+  'Availability: owner willingness, site control, title, and tenancy',
+  'Achievability / financial feasibility: price, comps, costs, and financing',
+  'Delivery timing: approvals, clearance, financing, and construction schedule',
 ]
 
-function barrier(
-  partial: Omit<Barrier, 'severity'> & { severity?: Barrier['severity'] },
+const PATH_POINTS: Record<ZoningScenarioPath, number> = {
+  P: 45,
+  A: 35,
+  S: 23,
+  C: 15,
+  NOT_PERMITTED: 0,
+  UNKNOWN: 0,
+}
+
+function source(field: string, value: string) {
+  return { name: 'LDES v2 evidence', field, value }
+}
+
+function driver(
+  id: string,
+  title: string,
+  detail: string,
+  penalty: number,
+  field: string,
+  value: string,
+  severity: Barrier['severity'] = penalty >= 20 ? 'high' : penalty >= 10 ? 'medium' : 'low',
 ): Barrier {
-  const severity =
-    partial.severity ??
-    (partial.penalty >= 20 ? 'high' : partial.penalty >= 10 ? 'medium' : 'low')
-  return { ...partial, severity }
+  return { id, title, detail, penalty, severity, source: source(field, value) }
 }
 
-function zoningPenalty(code: string): { penalty: number; title: string; detail: string } {
-  const upper = code.toUpperCase()
-  if (HIGH_ZONING.has(upper)) {
-    return {
-      penalty: 28,
-      title: 'Higher-review zoning district',
-      detail: `${upper} typically involves extra planning, institutional, or overlay review versus standard multi-family districts.`,
-    }
-  }
-  if (upper.startsWith('RM')) {
-    return {
-      penalty: 12,
-      title: 'Multi-unit residential zoning',
-      detail: `${upper} allows housing, but density and site-plan rules still apply.`,
-    }
-  }
-  if (EASIER_ZONING.has(upper)) {
-    return {
-      penalty: 6,
-      title: 'Neighborhood commercial zoning',
-      detail: `${upper} is generally more flexible for mixed-use or infill than single-family or special districts.`,
-    }
-  }
-  return {
-    penalty: 10,
-    title: 'Local zoning constraints',
-    detail: `District ${upper} is not among the easiest housing-oriented categories in this rubric.`,
-  }
+function parcelId(selected: SelectedParcel): string | null {
+  return selected.assessment?.PARID ?? selected.feature.properties.PIN ?? selected.feature.properties.MAPBLOCKLOT ?? null
 }
 
-function currentUseBarrier(useDesc: string, classDesc: string): Barrier | null {
-  const blob = `${useDesc} ${classDesc}`.toUpperCase()
-  if (!blob.trim()) return null
+function suitabilityBand(score: number): SuitabilityBand {
+  return score >= 80 ? 'green' : score >= 60 ? 'amber' : 'red'
+}
 
-  if (/\bVACANT\b|\bPARKING\b/.test(blob)) {
-    return null
+function potentialBand(evidence: LdesEvidence): DevelopmentPotentialBand {
+  const potential = evidence.potential
+  const target = evidence.targetUnits
+  if (!potential || target === undefined || !potential.criticalInputsComplete) return 'unknown'
+  if (potential.capacityLowerBound >= target) return 'green'
+  if (potential.capacityUpperBound >= target) return 'amber'
+  return 'red'
+}
+
+function missingRequired(selected: SelectedParcel, evidence: LdesEvidence | undefined): string[] {
+  const missing: string[] = []
+  if (!parcelId(selected)) missing.push('unique parcel_id')
+  if (!evidence?.cityVerified) missing.push('Pittsburgh city boundary verification')
+  if (!evidence?.polygonVerified) missing.push('verified parcel polygon')
+  if (!evidence?.allZoningDistrictsVerified) missing.push('all intersecting zoning districts')
+  if (!evidence?.overlayHandled) missing.push('zoning overlay handling')
+  if (!evidence?.scenarioId || evidence.scenarioPath === undefined) missing.push('selected housing scenario and zoning pathway')
+  if (!evidence?.environmentalQueriesSuccessful) missing.push('slope, landslide, undermined, and FEMA queries')
+  if (!evidence?.historicQueriesSuccessful) missing.push('historic district/site queries')
+  if (evidence?.activeViolation === undefined || evidence.activeCondemned === undefined) {
+    missing.push('violation and condemned queries')
   }
+  return missing
+}
 
-  if (/\bINDUSTRIAL\b|\bUTILITY\b|\bGOVERNMENT\b/.test(blob)) {
-    return barrier({
-      id: 'use-constrained',
-      penalty: 28,
-      title: 'Constrained current use',
-      detail: 'Industrial, utility, or government use usually means more conversion cost and policy review.',
-      source: {
-        name: 'WPRDC assessments',
-        field: classDesc ? 'CLASSDESC' : 'USEDESC',
-        value: classDesc || useDesc,
-      },
-    })
+function zoningDriver(path: ZoningScenarioPath): Barrier | null {
+  if (path === 'P') return null
+  if (path === 'UNKNOWN') {
+    return driver('zoning-unverified', 'Zoning pathway not verified', 'The selected scenario cannot be scored until district and use-table rules are verified.', 0, 'scenarioPath', 'UNKNOWN', 'high')
   }
-
-  if (/\bAPART\b/.test(blob)) {
-    return barrier({
-      id: 'use-apartments',
-      penalty: 18,
-      title: 'Existing apartment building',
-      detail: 'A large occupied apartment is harder to redevelop than vacant or underused land.',
-      source: { name: 'WPRDC assessments', field: 'USEDESC', value: useDesc },
-    })
+  if (path === 'NOT_PERMITTED') {
+    return driver('zoning-hard-stop', 'Current scenario is not permitted', 'The selected scenario requires a different pathway or use variance; this is a hard stop for the current scenario.', 45, 'scenarioPath', path, 'high')
   }
+  return driver('zoning-pathway', `${path} zoning pathway`, 'The selected scenario may proceed only through the identified additional review pathway; approval is not guaranteed.', 45 - PATH_POINTS[path], 'scenarioPath', path)
+}
 
-  return null
+function environmentalDrivers(evidence: LdesEvidence): { points: number; barriers: Barrier[] } {
+  const barriers: Barrier[] = []
+  const slope = evidence.slopeOverlapPct ?? 0
+  const slopePenalty = slope <= 0 ? 0 : slope <= 10 ? 4 : slope <= 30 ? 8 : 12
+  if (slopePenalty > 0) barriers.push(driver('slope', 'Steep-slope overlap', `${slope}% of the checked area overlaps the 25%+ slope layer.`, slopePenalty, 'slopeOverlapPct', `${slope}%`))
+  const landslidePenalty = evidence.landslideIntersects ? 10 : 0
+  if (landslidePenalty) barriers.push(driver('landslide', 'Landslide-prone area overlap', 'Professional geotechnical review is needed before relying on this result.', landslidePenalty, 'landslideIntersects', 'true'))
+  const underminedPenalty = evidence.underminedIntersects ? 10 : 0
+  if (underminedPenalty) barriers.push(driver('undermined', 'Undermined area overlap', 'Historical mine information is a screening flag, not a structural safety conclusion.', underminedPenalty, 'underminedIntersects', 'true'))
+  const terrainPenalty = Math.min(25, slopePenalty + landslidePenalty + underminedPenalty)
+  const floodPenalty = evidence.floodCategory === 'FLOODWAY' ? 15 : evidence.floodCategory === 'SFHA' ? 10 : evidence.floodCategory === '0.2_PERCENT' ? 4 : 0
+  if (floodPenalty) barriers.push(driver('flood', 'FEMA flood-hazard overlap', 'Use the latest FEMA NFHL classification and obtain formal floodplain review when applicable.', floodPenalty, 'floodCategory', evidence.floodCategory ?? 'unknown'))
+  return { points: Math.max(0, 40 - terrainPenalty - floodPenalty), barriers }
+}
+
+function historicDrivers(evidence: LdesEvidence): { points: number; barriers: Barrier[] } {
+  const barriers: Barrier[] = []
+  let penalty = 0
+  if (evidence.historicDistrict) {
+    penalty += 6
+    barriers.push(driver('historic-district', 'Historic district', 'Historic review may add design and approval requirements.', 6, 'historicDistrict', 'true'))
+  }
+  if (evidence.individualHistoricSite) {
+    penalty += 10
+    barriers.push(driver('historic-site', 'Individual historic site', 'The individual site designation requires additional historic review.', 10, 'individualHistoricSite', 'true'))
+  }
+  if (evidence.activeViolation) {
+    penalty += 5
+    barriers.push(driver('active-violation', 'Active unresolved violation', 'Resolve or verify the violation before relying on redevelopment assumptions.', 5, 'activeViolation', 'true'))
+  }
+  if (evidence.activeCondemned) {
+    penalty += 15
+    barriers.push(driver('condemned', 'Active condemned status', 'A condemned status is a major existing-condition constraint requiring official review.', 15, 'activeCondemned', 'true', 'high'))
+  }
+  const cappedPenalty = Math.min(15, penalty)
+  return { points: 15 - cappedPenalty, barriers }
 }
 
 export function scoreParcel(selected: SelectedParcel): ParcelScore {
-  const barriers: Barrier[] = []
-  const zoning = selected.zoning
-  const assessment = selected.assessment
-
-  if (!zoning?.code) {
-    barriers.push(
-      barrier({
-        id: 'zoning-missing',
-        penalty: 10,
-        title: 'Not on PGH zoning layer',
-        detail: 'City zoning was not found at this parcel centroid, so district rules are incomplete.',
-        source: { name: 'PGH zoning', field: 'zon_new', value: 'missing' },
-      }),
-    )
-  } else {
-    const z = zoningPenalty(zoning.code)
-    barriers.push(
-      barrier({
-        id: 'zoning',
-        penalty: z.penalty,
-        title: z.title,
-        detail: z.detail,
-        source: { name: 'PGH zoning', field: 'zon_new', value: zoning.code },
-      }),
-    )
+  const evidence = selected.ldes
+  const missing = missingRequired(selected, evidence)
+  const base: Omit<ParcelScore, 'score' | 'band' | 'barriers' | 'suitabilityScore' | 'suitabilityBand' | 'developmentPotentialBand' | 'overallResult' | 'missingRequired' | 'assumptions'> = {
+    scoreVersion: 'LDES-v2.0',
+    scoreStatus: 'INSUFFICIENT_DATA',
+    unscored: UNSCORED,
+    availabilityStatus: 'NOT_ASSESSED',
+    financialFeasibilityStatus: 'NOT_ASSESSED',
+    deliveryTimingStatus: 'NOT_ASSESSED',
   }
 
-  if (!assessment) {
-    barriers.push(
-      barrier({
-        id: 'assessment-missing',
-        penalty: 25,
-        title: 'Incomplete assessment record',
-        detail: 'Use, tax, and lot fields were not returned, so this score is capped by missing data.',
-        source: { name: 'WPRDC assessments', field: 'PARID', value: 'missing' },
-      }),
-    )
-  } else {
-    const useFlag = currentUseBarrier(
-      String(assessment.USEDESC ?? ''),
-      String(assessment.CLASSDESC ?? ''),
-    )
-    if (useFlag) barriers.push(useFlag)
-
-    const acres = acresFrom(assessment, selected.feature.properties.CALCACREAGE)
-    const sqft =
-      Number(assessment.LOTAREA) ||
-      (acres !== null ? acres * SQFT_PER_ACRE : NaN)
-
-    if (!Number.isFinite(sqft) || sqft <= 0) {
-      barriers.push(
-        barrier({
-          id: 'size-unknown',
-          penalty: 5,
-          title: 'Lot size missing',
-          detail: 'Parcel area is unknown, so bulk and setback feasibility cannot be checked.',
-          source: { name: 'WPRDC assessments', field: 'LOTAREA', value: 'missing' },
-        }),
-      )
-    } else if (sqft < SMALL_LOT_SQFT) {
-      barriers.push(
-        barrier({
-          id: 'size-small',
-          penalty: 10,
-          title: 'Very small lot',
-          detail: 'Lots under about 2,500 sq ft are harder to reuse for new housing without variances.',
-          source: {
-            name: 'WPRDC assessments',
-            field: 'LOTAREA',
-            value: String(Math.round(sqft)),
-          },
-        }),
-      )
-    }
-
-    const tax = String(assessment.TAXCODE ?? '').toUpperCase()
-    if (tax === 'E' || tax === 'P') {
-      barriers.push(
-        barrier({
-          id: 'tax-exempt',
-          penalty: 15,
-          title: 'Exempt or PURTA tax status',
-          detail: 'Exempt or public-utility tax status often means disposition or policy steps before private development.',
-          source: {
-            name: 'WPRDC assessments',
-            field: 'TAXCODE',
-            value: String(assessment.TAXDESC ?? tax),
-          },
-        }),
-      )
+  if (!evidence || missing.length > 0 || evidence.scenarioPath === undefined || evidence.scenarioPath === 'UNKNOWN') {
+    const barriers = missing.map((item, index) => driver(`missing-${index}`, 'Required evidence missing', item, 0, 'missing_required', item, 'high'))
+    return {
+      ...base,
+      score: null,
+      band: 'unrated',
+      barriers,
+      suitabilityScore: null,
+      suitabilityBand: 'unrated',
+      developmentPotentialBand: evidence ? potentialBand(evidence) : 'unknown',
+      overallResult: null,
+      missingRequired: missing,
+      assumptions: evidence?.potential?.assumptions ?? [],
     }
   }
 
-  const penalty = barriers.reduce((sum, item) => sum + item.penalty, 0)
-  const score = Math.max(0, Math.min(100, 100 - penalty))
-  const band: ParcelScore['band'] =
-    score >= 75 ? 'easier' : score >= 50 ? 'mixed' : 'harder'
-
-  barriers.sort((a, b) => b.penalty - a.penalty)
-
-  return { score, band, barriers, unscored: UNSCORED }
+  const zoningPoints = PATH_POINTS[evidence.scenarioPath]
+  const zoningBarrier = zoningDriver(evidence.scenarioPath)
+  const environmental = environmentalDrivers(evidence)
+  const historic = historicDrivers(evidence)
+  const score = zoningPoints + environmental.points + historic.points
+  const suitability = suitabilityBand(score)
+  const potential = potentialBand(evidence)
+  const hardStop = evidence.scenarioPath === 'NOT_PERMITTED'
+  const overall: OverallResult = hardStop
+    ? 'CURRENTLY_UNSUITABLE'
+    : potential === 'red'
+      ? 'SELECTED_SCENARIO_DOES_NOT_FIT'
+      : potential === 'unknown'
+        ? 'NEEDS_FURTHER_EVIDENCE'
+        : suitability === 'green' && potential === 'green'
+          ? 'STRONG_CANDIDATE'
+          : suitability !== 'red' && (suitability === 'amber' || potential === 'amber')
+            ? 'CANDIDATE_WITH_CONDITIONS'
+            : 'MAJOR_CONSTRAINTS'
+  const barriers = [zoningBarrier, ...environmental.barriers, ...historic.barriers].filter((item): item is Barrier => item !== null)
+  return {
+    ...base,
+    score: hardStop ? Math.min(score, 49) : score,
+    band: suitability === 'green' ? 'easier' : suitability === 'amber' ? 'mixed' : 'harder',
+    barriers: barriers.sort((a, b) => b.penalty - a.penalty),
+    suitabilityScore: hardStop ? Math.min(score, 49) : score,
+    suitabilityBand: suitability,
+    developmentPotentialBand: potential,
+    overallResult: overall,
+    missingRequired: [],
+    assumptions: evidence.potential?.assumptions ?? [],
+    scoreStatus: 'ASSESSED',
+  }
 }
 
 export function scoreSummary(result: ParcelScore): string {
-  const top = result.barriers.slice(0, 2)
-  if (top.length === 0) {
-    return `This site scores ${result.score} (${result.band}). No major zoning, use, size, or tax barriers were flagged in the open records used here.`
+  if (result.scoreStatus === 'INSUFFICIENT_DATA') {
+    return `LDES v2 is unrated because ${result.missingRequired.length} required evidence item(s) are missing. Availability, financial feasibility, and delivery timing are not assessed.`
   }
-  const titles = top.map((item) => item.title.toLowerCase()).join(' and ')
-  const rest =
-    result.barriers.length > 2
-      ? ` Additional flags: ${result.barriers
-          .slice(2)
-          .map((item) => item.title.toLowerCase())
-          .join(', ')}.`
-      : ''
-  return `This site scores ${result.score} (${result.band}). The biggest barriers are ${titles}.${rest}`
+  const top = result.barriers.slice(0, 2)
+  const details = top.length ? ` Main drivers: ${top.map((item) => item.title.toLowerCase()).join(' and ')}.` : ' No scored suitability drivers were flagged.'
+  return `${result.overallResult?.replaceAll('_', ' ') ?? 'Screened'} — Suitability ${result.suitabilityBand}.${details} Availability, financial feasibility, and delivery timing are not assessed.`
+}
+
+/** Jev may propose evidence, but the deterministic scorer never consumes it directly. */
+export function validateJevEvidenceCandidate(candidate: JevEvidenceCandidate): JevEvidenceCandidate {
+  if (!candidate.requiresHumanReview) throw new Error('Jev evidence must require human review')
+  if (candidate.confidence < 0 || candidate.confidence > 1) throw new Error('Jev confidence must be between 0 and 1')
+  return candidate
 }

@@ -310,6 +310,10 @@ address {
   color: #9f1239;
 }
 
+.score-unrated {
+  color: #475569;
+}
+
 .score-summary {
   margin: 0;
   font-weight: 500;

@@ -174,14 +174,17 @@ function ScoreCard({ data }: { data: SelectedParcel }) {
   const result = scoreParcel(data)
   return (
     <section className="card score-card">
-      <p className="eyebrow">Development Ease Score</p>
+      <p className="eyebrow">Development Ease — zoning &amp; site screening</p>
       <div className="score-hero">
-        <strong className={`score-numeral score-${result.band}`}>{result.score}</strong>
+        <strong className={`score-numeral score-${result.band}`}>{result.score ?? '—'}</strong>
         <div>
           <p className={`score-band score-${result.band}`}>{bandLabel(result.band)}</p>
           <p className="score-summary">{scoreSummary(result)}</p>
         </div>
       </div>
+      <p className="note">
+        Suitability: {result.suitabilityBand}; Development potential: {result.developmentPotentialBand}; Overall: {result.overallResult ?? 'Needs further evidence'}.
+      </p>
       <ul className="barrier-list">
         {result.barriers.map((item) => (
           <BarrierRow key={item.id} barrier={item} />
@@ -208,9 +211,10 @@ function BarrierRow({ barrier }: { barrier: Barrier }) {
   )
 }
 
-function bandLabel(band: 'easier' | 'mixed' | 'harder'): string {
+function bandLabel(band: 'easier' | 'mixed' | 'harder' | 'unrated'): string {
   if (band === 'easier') return 'Easier'
   if (band === 'harder') return 'Harder'
+  if (band === 'unrated') return 'Unrated'
   return 'Mixed'
 }
 
