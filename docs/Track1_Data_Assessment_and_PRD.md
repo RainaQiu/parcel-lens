@@ -1,6 +1,6 @@
 # Track 1 地块开发初筛工具：数据评估与产品需求草案
 
-版本：v0.7｜2026-09-26｜工作线 3；按团队会议调整 Basic 范围，取消强制方案输入
+版本：v0.8｜2026-09-26｜工作线 3；合并团队数据目录映射与会议决定
 
 ## 1. 先说结论
 
@@ -8,7 +8,7 @@
 
 **建议的比赛演示范围**：只支持 Pittsburgh 市内地块；先完成“输入地块 → 确认边界 → 查分区与地形图层 → 展示地块约束、未知项与来源”。多地块比较是增强项；真实地块端到端演示放在收尾阶段。[官方挑战 brief](https://ai-horizons-2026-ai-for-housing-hackathon.brandon831577.chatgpt.site/challenges/policy-to-permit)提到 Development Ease Score；在没有具体建设方案时，当前颜色只能代表已核验的**地块约束**，不能冒称某项目的完整开发便利度。
 
-**数据判断**：官方目录的 `Core` 是面向多个赛道的目录标签，不表示 Track 1 每条 Core 数据都必须接入。Track 1 的第一依赖是地块、分区地图、分区法规。目录页只是索引；要继续进入具体 dataset 的资源页，确认 GeoJSON、CSV、API、字段和更新日期。
+**数据判断**：官方目录的 `Core` 是面向多个赛道的目录标签，不表示 Track 1 每条 Core 数据都必须接入。当前 Basic 首先依赖地块边界、分区地图和一个经核验的地形图层；具体住宅用途的法规映射留待方案功能。县评估、许可、市场和宏观数据只在对应功能中使用。第 3.1 节列出功能与数据源的关系，并标记暂缓项。
 
 ## 2. 案头研究：角色、任务与边界
 
@@ -75,7 +75,32 @@
 
 **明确排除**：ACS、CHAS、人口普查、HMDA、Zillow/Redfin 等宏观或区域市场指标，不应直接决定单个地块“是否容易获准建设”。如果以后增加财务 pro forma，再按其真实空间粒度和假设使用市场、收入及成本数据。
 
-### 3.1 数据进入产品前的验收清单
+### 3.1 功能—数据依赖矩阵
+
+以下映射以[官方 Public Data Catalog](https://docs.google.com/spreadsheets/d/19CKyt1kansUZ3VGOAOBihYYxNFuitx5VTkzOiEy4iXA/edit?gid=2076065299#gid=2076065299)的 `Data Catalog`、`Read Me` 和 `Brief Source Map` 三页为依据，并结合本产品的单地块主路径收窄。表中的 `Core`／`Useful` 沿用目录标签；**P0/P1/P2 才是本 PRD 的接入优先级**。目录给出的 “Typical update” 只是一般频率，报告仍须记录实际资源的版本或抓取日期。
+
+| 功能 | 需要的数据集 | 进入功能的数据／连接方式 | 必需程度与缺失时行为 |
+|---|---|---|---|
+| **B1 找地块与失败状态** | [Allegheny County Parcel Boundaries](https://data.wprdc.org/dataset/allegheny-county-parcel-boundaries1)（Core/P0）；[County Property Assessments](https://data.wprdc.org/dataset/property-assessments)（Core/P1） | 以标准化 `parcel_id`／block-lot 唯一定位地块；边界返回 polygon，评估表补地址等搜索线索。地址只用于候选匹配，不能代替 parcel ID。 | 边界与唯一 ID 是阻断依赖；无唯一匹配不运行。评估表失败时仍可按 parcel ID 工作，地址等字段显示未知。 |
+| **B3 地块事实、地图与报告联动** | Parcel Boundaries（Core/P0）；Property Assessments（Core/P1） | `parcel_id` 是地图、详情和报告的主键；polygon 计算/校验面积，评估表提供地址、用途描述、评估值等原始记录。 | 边界或 ID 不一致时阻断分析。评估值、历史成交只放“原始地块资料”，不进入地块约束等级。 |
+| **B4 Zoning 分区分类** | [市府 Zoning Map](https://pittsburghpa.maps.arcgis.com/apps/instant/sidebar/index.html?appid=4bb79ea64bf848b3a0560e3856efeccb) 与 [Pittsburgh Zoning Districts](https://data.wprdc.org/dataset/pittsburgh-zoning)（Core/P0，可接市 ArcGIS 图层）；Parcel Boundaries（Core/P0） | 用完整 parcel polygon 与 zoning polygon 相交，显示全部 district/overlay、代码及来源。 | 单点查询或跨区未处理时标未知；没有住宅方案时不做用途许可分类。 |
+| **B5 一个环境图层** | [Pittsburgh Steep Slopes (25% or greater)](https://data.wprdc.org/dataset/25-or-greater-slope)（Core/P0）；Parcel Boundaries（Core/P0） | polygon spatial join；输出 `intersects`、重叠面积、占 parcel 比例、图层版本/日期与精度说明。 | P0 演示必须有一个已核环境层；图层失败时环境结论未知，并使依赖它的 B6 变为 `unrated`。相交只产生复核提示。 |
+| **B6 地块约束等级** | B3–B5 的结构化输出；不直接读取新数据集 | 规则引擎读取分区交集、陡坡观察及版本，生成 `parcel_constraint_band`、`drivers[]`、`missing_required[]`；县评估值和市场数据不参与。 | 关键证据不齐为 `unrated`；不生成整体 Development Ease Score。LLM 不生成颜色或补齐事实。 |
+| **B7 障碍、未知与下一步** | B4–B6 的 observations/drivers；官方来源 URL；可选 OneStopPGH/ZBA 人工入口 | 每个 driver 保存事实、影响、下一步部门/专业人员、原始来源、数据日期和规则版本；许可/案例入口只用于进一步核查。 | 缺来源或日期的 driver 不能列为已核验障碍；转入未知项。没有命中也要显示未检查的尺寸、overlay、基础设施等。 |
+| **B8 可读解释及退化** | B3–B7 已结构化结果；无新增目录数据 | 模板或 AI 只能重述允许字段和核验过的规则；输入中保留来源、范围和未知状态。 | AI 服务失败时使用模板；不得改变 B6 等级、隐藏未知项或从常识补数据。 |
+| **B9 日期、来源与边界** | 所有被调用资源的 metadata；官方目录 `Read Me` 的质量规则 | 为每条 evidence 保存 steward、resource URL、access format、retrieved_at、source_updated_at/vintage、字段定义、转换和适用地理范围。 | metadata 不完整时证据可展示为“待核版本”，但不得冒充当前事实；关键证据版本不明时 B6 可降为 `unrated`。 |
+| **B10 暂缓** | 待团队规划 | 四类角色的 UI 与报告视角另行设计。 | 不计入当前 Basic。 |
+| **B11 收尾** | B1–B9 实际使用的数据快照、规则版本和人工核验记录 | 最后固定一个真实 `parcel_id`，记录来源、版本、预期结果与人工核验。 | 不计入本轮 Basic 开发；合成 Mock 不冒充真实验证。 |
+| **B12 暂缓** | 财务数据尚未确定 | 暂不做财务资料卡或分析。 | 不计入当前 Basic；评估值、成交价不得冒充财务可行性。 |
+| **Nice 3 两地块比较** | 两块地各自的分区与地形证据 | 只在规则版本、数据源/vintage、图层覆盖和证据范围一致时逐字段比较；连接键仍为各自 parcel ID。 | 任一侧缺证据或版本不一致时可比较事实，不排序等级。 |
+| **Nice 4 采空区/FEMA** | [Pittsburgh Undermined Areas](https://data.wprdc.org/dataset/undermined-areas)（Core/P1）；[FEMA National Flood Hazard Layer](https://www.fema.gov/flood-maps/national-flood-hazard-layer)（Core/P1）；Parcel Boundaries | 与 B5 相同的 polygon spatial join；保存命中类型、重叠范围、图层/面板或社区标识、版本和局限。 | 未核覆盖、精度或版本前不接入 B6。命中是专业复核线索，不是安全或正式洪水认定。 |
+| **Nice 5 Permit 历史** | [PLI Permits](https://data.wprdc.org/dataset/pli-permits)（Core/P1）；[OneStopPGH](https://onestoppgh.pittsburghpa.gov/)（Core/P2）；ZBA decisions（Useful/P2） | 优先用 parcel ID；否则用标准化地址并保存匹配质量。显示 permit/application ID、类型、状态、日期和官方记录链接。 | 仅作历史背景/复核入口，不推断当前方案获批概率；匹配不可靠时显示“可能相关”或未知。 |
+| **Nice 6 最小财务资料卡** | Property Sale Transactions（Core/P2）；HUD FMR（Core/P2）；HUD Income Limits、BLS PPI（Useful/P2）；Zillow/Redfin/Realtor.com 公共聚合数据（Core/P2）；用户手工样本 | 每个样本保存地址/区域、日期、类型、数值、来源、空间粒度和筛选理由；销售记录先过滤非正常/名义转让。 | 只作资料卡和假设记录，不自动形成投资建议或 `overall_band`；上市网站的公开聚合数据不等于 listing-level 数据授权。 |
+| **Later 区域/政策/批量功能** | ACS、Decennial Census、CHAS、TIGER/Line、Census GEOID；再按功能加入 transit、EJScreen、NLCD 等 | 用 GEOID/FIPS 连接统计地理；维护 geography vintage crosswalk，并展示覆盖率、误差和缺失。 | 不回填到单地块许可判断。完成代表性、公平性和政策规则验证前，不开放社区排名或投资排序。 |
+
+**共享数据契约**：所有数据适配器至少输出 `source_id`、`source_url`、`steward`、`retrieved_at`、`source_updated_at`/`vintage`、`geographic_scope`、`join_method`、`match_quality`、`raw_identifier` 和 `transform_notes`。空间叠加另输出 `geometry_source`、`crs`、`intersects`、`overlap_area`、`overlap_ratio` 与精度/覆盖说明。这样 B6、B7、B9、Nice 3 和导出功能复用同一证据，不在页面层重新猜测来源。
+
+### 3.2 数据进入产品前的验收清单
 
 每个纳入的源必须记录：源机构、具体资源 URL、格式、下载/调用时间、数据更新时间、使用字段及定义、坐标系、许可/署名要求、缺失率。对同一个真实地块，验证：
 
