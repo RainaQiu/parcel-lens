@@ -3,6 +3,7 @@ export type ParcelProperties = {
   MAPBLOCKLOT?: string
   MUNICODE?: number
   CALCACREAGE?: number
+  MODIFIEDON?: string | null
 }
 
 export type ParcelFeature = GeoJSON.Feature<
@@ -52,12 +53,15 @@ export type AssessmentRow = {
   FAIRMARKETBUILDING?: number | string | null
   FAIRMARKETLAND?: number | string | null
   FAIRMARKETTOTAL?: number | string | null
+  TAXYEAR?: number | string | null
+  ASOFDATE?: string | null
 }
 
 export type ZoningInfo = {
   code: string
   description: string
   definitionUrl: string | null
+  updatedAt: string | null
 }
 
 export type SearchHit = {

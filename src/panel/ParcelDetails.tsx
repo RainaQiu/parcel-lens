@@ -2,8 +2,10 @@ import { useState, type ReactNode } from 'react'
 import {
   acresFrom,
   display,
+  formatDate,
   formatMoney,
   formatNumber,
+  formatYear,
   legalDescription,
   mailingAddress,
   siteAddress,
@@ -92,6 +94,10 @@ export function ParcelDetails({ loading, error, data, blockOrder, onClose }: Pro
             <Field label="State" value={assessment?.PROPERTYSTATE ?? 'PA'} />
             <Field label="Site ZIP" value={assessment?.PROPERTYZIP} />
             <Field label="Map block lot" value={data.feature.properties.MAPBLOCKLOT} />
+            <Field
+              label="Boundary last modified"
+              value={formatDate(data.feature.properties.MODIFIEDON)}
+            />
           </Section>
         ),
         owner: (
@@ -120,6 +126,8 @@ export function ParcelDetails({ loading, error, data, blockOrder, onClose }: Pro
             <Field label="County land" value={formatMoney(assessment?.COUNTYLAND)} />
             <Field label="County building" value={formatMoney(assessment?.COUNTYBUILDING)} />
             <Field label="Tax status" value={assessment?.TAXDESC} />
+            <Field label="Certified tax year" value={formatYear(assessment?.TAXYEAR)} />
+            <Field label="Assessment file as of" value={formatDate(assessment?.ASOFDATE)} />
           </Section>
         ),
         zoning: (
@@ -142,6 +150,10 @@ export function ParcelDetails({ loading, error, data, blockOrder, onClose }: Pro
             <Field label="Parcel use code" value={assessment?.USECODE} />
             <Field label="Parcel use description" value={assessment?.USEDESC} />
             <Field label="Class" value={assessment?.CLASSDESC} />
+            <Field
+              label="Zoning layer last updated"
+              value={formatDate(data.zoning?.updatedAt)}
+            />
           </Section>
         ),
         geo: (
