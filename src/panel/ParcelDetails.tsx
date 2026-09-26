@@ -126,6 +126,19 @@ export function ParcelDetails({ loading, error, data, blockOrder, onClose }: Pro
           <Section key="zoning" title="Zoning, land use & vacancy">
             <Field label="Zoning code" value={data.zoning?.code} />
             <Field label="Zoning description" value={data.zoning?.description} />
+            {data.zoning?.definitionUrl && (
+              <div className="field">
+                <span className="label">Zoning district definition</span>
+                <a
+                  className="value-link"
+                  href={data.zoning.definitionUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Zoning District Definition
+                </a>
+              </div>
+            )}
             <Field label="Parcel use code" value={assessment?.USECODE} />
             <Field label="Parcel use description" value={assessment?.USEDESC} />
             <Field label="Class" value={assessment?.CLASSDESC} />
