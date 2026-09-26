@@ -1,6 +1,6 @@
 # ParcelLens｜Slack 住房专家访谈提纲
 
-版本：2026-09-26 v0.3。用途：用异步专家反馈校准工作线 3 的产品假设；**不等待回复再写 PRD、收集数据或设计接口**。用户提供了一条来自 Steve Wray（City of Pittsburgh SME）的 Slack 答复；其他问题仍待验证。
+版本：2026-09-26 v0.4。用途：用异步专家反馈校准工作线 3 的产品假设；**不等待回复再写 PRD、收集数据或设计接口**。已收到一条财务线索，以及一条用户转述的评分回复。
 
 ## 1. 问题筛选原则
 
@@ -12,17 +12,16 @@
 
 用户提供的 Slack 记录中，Het Sheth 已询问“现有工具仍难回答什么、由谁承担”。Steve Wray（SME, City of Pittsburgh）回答：**financial feasibility 是关键问题**，开发商或 nonprofit 会用到，需找相似社区的可比租金/价值、房地产租赁或销售数据。来源是用户在本次对话提供的记录；未取得消息 permalink，也未针对本项目的具体住宅方案验证。**不要再次泛问“最大的可行性问题是什么”**。
 
-这条回复提出两项尚未解决的产品判断：①官方要求的 Development Ease Score 应测量什么、有无可接受的评分规则；②若 MVP 只做地块/法规/环境初筛并把财务列为未评估，目标用户是否仍会用它。公开资料和现有 Slack 回复均未回答这两点。
+用户随后转述的另一条 Slack 回复明确说**没有预设评分系统**，团队可自行提出对用户直观的方案，并以绿／黄／红为例。这回答了“是否存在专家指定公式”，因此**不再重复问 Q1 或要求对方给权重**。该回复没有给出 ParcelLens 的实际阈值，也不能证明当前缺财务数据的原型可用于真实投资决策。回答者身份、发言时间、消息链接待补；团队暂按 [PRD 4.4](Track1_Data_Assessment_and_PRD.md)提出可复核的分类规则。
 
 ## 3. 最值得在 office hours 问的独立问题
 
 | 问题 | 公开资料回答不了什么 | 回复会改变 PRD 哪一项 |
 |---|---|---|
-| **Q1 评分规则（优先）**：如果没有公认的 Development Ease Score 标准，针对“具体地块 + 具体住宅方案”的早期初筛，分数应衡量什么？哪些因素应是单独红旗或“无法评分”条件，而非加权平均？请用一个会使简单权重出错的例子说明。 | 比赛 brief 规定输出分数，但没有给评分定义、权重或缺失值处理；昨天会议也未给标准。 | B6 的定义、输入门槛、硬性排除条件及解释。 |
 | **Q2 财务边界**：既然财务可行性很关键，若本周末原型只核查 zoning/环境并明确标记“财务未评估”，开发商或 nonprofit 会在什么早期决策中使用它？若不会，最少还要增加哪一项财务输入或可比数据？ | Steve 已指出关键数据方向，但没有说明非财务初筛是否仍有独立价值或最低财务需求。 | 是否调整主用户、Basic 范围及财务提示/增强项。 |
-| **Q3 评分反例复核（拿到初版规则后再问）**：这是我们公开写出的暂定评分因素、权重和一个真实地块报告；哪个结论最可能误导？应该改分数、加“未知”，还是不显示数值？ | 只有专家对具体规则和案例的反证能检查评分是否误导；泛问“权重对吗”难以得到可执行反馈。 | 版本化评分规则和演示前审查。 |
+| **Q3 初筛等级反例复核（拿到真实案例后再问）**：这是我们的绿／黄／红／灰规则和一个真实地块 + 方案报告；哪一处可能让开发商误以为地块已可建或财务可行？若缺尺寸或财务资料，应该显示灰色、保留黄色障碍旗，还是收窄等级名称？ | 专家已允许团队自定易懂的系统，尚未验证具体阈值与用户理解；真实反例比再次问公式更有价值。 | B6 的阈值、措辞和演示前审查。 |
 
-若只能发一题，先发 Q1；Q2 另开 thread。Q3 待数据线交付一块真实地块与团队暂定评分后发送，不能编造案例或权重。
+若只能再发一题，优先用 Q2 验证原型对真实决策是否有价值。Q3 待数据线交付一块真实地块与团队暂定等级后发送，不能编造案例；已回答的 Q1 不再发送。
 
 ## 4. 针对不同专业角色的可选追问
 
@@ -32,16 +31,6 @@
 - **Policy Analyst**：要把地块结果聚合成社区/政策洞察，你会要求什么最小覆盖率、可比性或缺失说明？哪种排序可能导致错误的政策判断？公开政策网页无法给本产品的分析可接受门槛。
 
 ## 5. 可直接发送的英文 Slack 草稿（每段单独开 thread）
-
-**Thread A：评分规则，优先发给 planning/development SME**
-
-> **Team / track:** ParcelLens, Track 1 — Development Feasibility Navigator
->
-> **What we are building:** A decision-support report for one Pittsburgh parcel and one proposed housing scenario, with source-linked zoning and site constraints.
->
-> **Our question:** The challenge asks for a Development Ease Score, but we have not found an established scoring standard. For early screening, what exactly should such a score measure? Which conditions should trigger a separate red flag or “insufficient evidence” instead of being averaged into a numeric score? One counterexample to a simple weighted score would help.
->
-> **What we currently believe:** We should disclose each factor, any provisional weights, missing factors, and the score's limited scope; it should never imply zoning approval, permit likelihood, or financial viability. We would value correction on that boundary.
 
 **Thread B：承接 Steve Wray 的财务线索，另发一帖**
 
@@ -53,7 +42,7 @@
 >
 > **What we currently believe:** A land-use/site score should be kept separate from project financial feasibility; we can flag missing comps rather than imply a project is viable.
 
-这两段是**待发送草稿**，未向 Slack 发消息。发送时各自作为一条新问题 thread；如果是在 Steve 的现有回复下追问财务问题，先核对频道习惯，避免在同一 thread 混入评分问题。
+这是**待发送草稿**，未向 Slack 发消息。若用户转述的评分回复已经直接回答了此题的实际使用价值，应先核对原 thread，避免重复；其现有文字本身没有给出最小财务输入。具体等级复核等真实案例完成后再单独开 thread。
 
 ## 6. 晚到回复的处理
 

@@ -1,11 +1,13 @@
 # Parcel Lens
 
-Pittsburgh parcel map: live Allegheny County polygons, WPRDC assessments, and city zoning details.
+Interactive Pittsburgh parcel screening prototype. Select a live county parcel, enter a housing scenario, and review available public facts, evidence gaps, sources, and next steps in one map workspace.
 
 ```bash
 npm install
 npm run dev
 ```
+
+The screening panel deliberately shows **“Unrated — evidence incomplete”**. A housing expert confirmed there is no predetermined score formula and suggested an intuitive green/yellow/red scheme. The PRD proposes a fourth, unrated state for missing evidence. The app currently has a zoning lookup at one point, but no full parcel zoning intersection, verified use-rule engine, or steep-slope overlap, so it does not assign a color grade. It does not claim a permit, financial, or overall development feasibility decision. The four reading focuses change next-step guidance only; they do not change parcel facts.
 
 ## Product documents
 
