@@ -144,16 +144,3 @@ export type LdesEvidence = {
     assumptions?: string[]
   }
 }
-
-export type JevEvidenceCandidate = {
-  parcelId: string
-  recordId: string
-  sourceUrl: string
-  recordDate: string | null
-  category: 'permit' | 'zba' | 'violation' | 'other'
-  issueCode: string | null
-  excerpt: string
-  confidence: number
-  modelVersion: string
-  requiresHumanReview: true
-}

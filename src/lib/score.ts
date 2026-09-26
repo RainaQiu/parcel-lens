@@ -2,7 +2,6 @@
 import type {
   Barrier,
   DevelopmentPotentialBand,
-  JevEvidenceCandidate,
   LdesEvidence,
   OverallResult,
   ParcelScore,
@@ -194,11 +193,4 @@ export function scoreSummary(result: ParcelScore): string {
   const top = result.barriers.slice(0, 2)
   const details = top.length ? ` Main drivers: ${top.map((item) => item.title.toLowerCase()).join(' and ')}.` : ' No scored suitability drivers were flagged.'
   return `${result.overallResult?.replaceAll('_', ' ') ?? 'Screened'} — Suitability ${result.suitabilityBand}.${details} Availability, financial feasibility, and delivery timing are not assessed.`
-}
-
-/** Jev may propose evidence, but the deterministic scorer never consumes it directly. */
-export function validateJevEvidenceCandidate(candidate: JevEvidenceCandidate): JevEvidenceCandidate {
-  if (!candidate.requiresHumanReview) throw new Error('Jev evidence must require human review')
-  if (candidate.confidence < 0 || candidate.confidence > 1) throw new Error('Jev confidence must be between 0 and 1')
-  return candidate
 }

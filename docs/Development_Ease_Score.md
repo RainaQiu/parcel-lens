@@ -272,42 +272,11 @@ not_assessed[]
 
 同一 `parcel + scenario + data_version + rule_version` 必须得到相同结果。规则、权重或阈值变化时必须升级 `score_version`，并保留旧结果的可解释性。
 
-## 9. Jev 接口预留
+## 9. Jev / LLM：暂不接入
 
-Jev/LLM 只处理非结构化文本，不参与 GIS、法规事实或分数计算。
+本版暂不提供 Jev evidence 接口，也不把任何 LLM 输出接入评分链路。当前分数、hard stop、Development Potential 和 Overall Result 全部由结构化数据与确定性规则产生。
 
-允许的任务：
-
-- 从 permit、ZBA decision、violation narrative 中提取候选 issue；
-- 将记录路由到预定义类别并给人工复核排序；
-- 标记来源之间的可能矛盾；
-- 返回原文片段、record ID、模型版本和置信度。
-
-禁止的任务：
-
-- 修改 Suitability 分数、hard stop 或 overall result；
-- 推断空间相交、法定用途路径或未提供的事实；
-- 把缺失数据补成“无风险”；
-- 生成 Availability、财务可行性或 Delivery Timing 结论。
-
-建议接口：
-
-```ts
-type JevEvidenceCandidate = {
-  parcelId: string
-  recordId: string
-  sourceUrl: string
-  recordDate: string | null
-  category: 'permit' | 'zba' | 'violation' | 'other'
-  issueCode: string | null
-  excerpt: string
-  confidence: number
-  modelVersion: string
-  requiresHumanReview: true
-}
-```
-
-Jev 输出先进入 `evidence_candidates[]`；只有经结构化规则或人工核验后，事实才可进入 `drivers[]`。
+未来若接入 Jev，只能作为 permit、ZBA 或 violation 文本的待核线索，并必须经过人工/结构化规则核验；不得修改分数、补齐缺失数据或生成 Availability、财务可行性和 Delivery Timing 结论。
 
 ## 10. 实施与验证顺序
 
