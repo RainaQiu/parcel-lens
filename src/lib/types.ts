@@ -73,3 +73,19 @@ export type SelectedParcel = {
   assessment: AssessmentRow | null
   zoning: ZoningInfo | null
 }
+
+export type Barrier = {
+  id: string
+  severity: 'low' | 'medium' | 'high'
+  title: string
+  detail: string
+  penalty: number
+  source: { name: string; field: string; value: string }
+}
+
+export type ParcelScore = {
+  score: number
+  band: 'easier' | 'mixed' | 'harder'
+  barriers: Barrier[]
+  unscored: string[]
+}

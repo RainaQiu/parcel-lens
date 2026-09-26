@@ -273,6 +273,102 @@ address {
   color: var(--warn);
 }
 
+.score-card {
+  background: #eef3fb;
+}
+
+.score-hero {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.score-numeral {
+  font-size: 44px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-band {
+  margin: 4px 0 6px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 12px;
+}
+
+.score-easier {
+  color: #166534;
+}
+
+.score-mixed {
+  color: #9a3412;
+}
+
+.score-harder {
+  color: #9f1239;
+}
+
+.score-summary {
+  margin: 0;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.barrier-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.barrier {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--paper);
+  border-left: 3px solid var(--line);
+}
+
+.barrier-high {
+  border-left-color: #9f1239;
+}
+
+.barrier-medium {
+  border-left-color: #c2410c;
+}
+
+.barrier-low {
+  border-left-color: #64748b;
+}
+
+.barrier p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.source-chip {
+  align-self: flex-start;
+  font-size: 11px;
+  background: var(--wash);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--muted);
+}
+
+.unscored {
+  padding: 8px 0 0;
+  color: var(--muted);
+}
+
 @media (max-width: 720px) {
   .topbar {
     flex-direction: column;

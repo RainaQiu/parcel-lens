@@ -8,7 +8,8 @@ import {
   mailingAddress,
   siteAddress,
 } from '../lib/format'
-import type { SelectedParcel } from '../lib/types'
+import { scoreParcel, scoreSummary } from '../lib/score'
+import type { Barrier, SelectedParcel } from '../lib/types'
 
 type Props = {
   loading: boolean
@@ -63,6 +64,8 @@ export function ParcelDetails({ loading, error, data, onClose }: Props) {
 
       {!loading && data && (
         <div className="panel-body">
+          <ScoreCard data={data} />
+
           <section className="card">
             <div className="field">
               <span className="label">Full address</span>
@@ -165,6 +168,50 @@ export function ParcelDetails({ loading, error, data, onClose }: Props) {
       )}
     </aside>
   )
+}
+
+function ScoreCard({ data }: { data: SelectedParcel }) {
+  const result = scoreParcel(data)
+  return (
+    <section className="card score-card">
+      <p className="eyebrow">Development Ease Score</p>
+      <div className="score-hero">
+        <strong className={`score-numeral score-${result.band}`}>{result.score}</strong>
+        <div>
+          <p className={`score-band score-${result.band}`}>{bandLabel(result.band)}</p>
+          <p className="score-summary">{scoreSummary(result)}</p>
+        </div>
+      </div>
+      <ul className="barrier-list">
+        {result.barriers.map((item) => (
+          <BarrierRow key={item.id} barrier={item} />
+        ))}
+      </ul>
+      <p className="note unscored">
+        Not in this score: {result.unscored.join(', ')}.
+      </p>
+    </section>
+  )
+}
+
+function BarrierRow({ barrier }: { barrier: Barrier }) {
+  return (
+    <li className={`barrier barrier-${barrier.severity}`}>
+      <div>
+        <strong>{barrier.title}</strong>
+        <p>{barrier.detail}</p>
+      </div>
+      <span className="source-chip" title={`${barrier.source.field}=${barrier.source.value}`}>
+        {barrier.source.name} · {barrier.source.field} · {barrier.source.value}
+      </span>
+    </li>
+  )
+}
+
+function bandLabel(band: 'easier' | 'mixed' | 'harder'): string {
+  if (band === 'easier') return 'Easier'
+  if (band === 'harder') return 'Harder'
+  return 'Mixed'
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
