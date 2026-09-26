@@ -1,15 +1,52 @@
-import { Map, NavigationControl, type GeoJSONSource, type MapGeoJSONFeature } from 'maplibre-gl'
+import { Map, NavigationControl, type GeoJSONSource, type MapGeoJSONFeature, type StyleSpecification } from 'maplibre-gl'
 import {
   forwardRef,
   useEffect,
   useImperativeHandle,
   useRef,
+  useState,
 } from 'react'
 import { fetchParcelsInBbox } from '../lib/arcgis'
 import type { ParcelFeature } from '../lib/types'
 
 const MIN_ZOOM = 16
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
+
+export type Basemap = 'normal' | 'satellite' | 'terrain'
+
+const STYLES: Record<Basemap, string | StyleSpecification> = {
+  normal: 'https://tiles.openfreemap.org/styles/positron',
+  satellite: rasterStyle(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+  ),
+  terrain: rasterStyle(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+    'Tiles © Esri — Source: Esri, TomTom, Garmin, FAO, NOAA, USGS',
+  ),
+}
+
+const MODES: { id: Basemap; label: string }[] = [
+  { id: 'normal', label: 'Normal' },
+  { id: 'satellite', label: 'Satellite' },
+  { id: 'terrain', label: 'Terrain' },
+]
+
+function rasterStyle(tiles: string, attribution: string): StyleSpecification {
+  return {
+    version: 8,
+    sources: {
+      basemap: {
+        type: 'raster',
+        tiles: [tiles],
+        tileSize: 256,
+        attribution,
+        maxzoom: 19,
+      },
+    },
+    layers: [{ id: 'basemap', type: 'raster', source: 'basemap' }],
+  }
+}
 
 export type ParcelMapHandle = {
   flyToFeature: (feature: ParcelFeature) => void
@@ -30,10 +67,13 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
     const abortRef = useRef<AbortController | null>(null)
     const debounceRef = useRef<number | null>(null)
     const selectedRef = useRef<ParcelFeature | null>(selectedFeature)
+    const [basemap, setBasemap] = useState<Basemap>('satellite')
+    const basemapRef = useRef<Basemap>(basemap)
 
     onSelectRef.current = onSelectPin
     onZoomRef.current = onZoomChange
     selectedRef.current = selectedFeature
+    basemapRef.current = basemap
 
     useImperativeHandle(ref, () => ({
       flyToFeature(feature) {
@@ -49,14 +89,14 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
 
       const map = new Map({
         container: containerRef.current,
-        style: 'https://tiles.openfreemap.org/styles/positron',
+        style: STYLES.satellite,
         center: [-79.9477, 40.4528],
         zoom: 16.6,
         maxZoom: 19,
         minZoom: 11,
       })
 
-      map.addControl(new NavigationControl({ showCompass: false }), 'top-right')
+      map.addControl(new NavigationControl({ showCompass: true }), 'top-right')
       mapRef.current = map
 
       const loadParcels = () => {
@@ -104,51 +144,7 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
         )
       }
 
-      map.on('load', () => {
-        map.addSource('parcels', { type: 'geojson', data: EMPTY })
-        map.addSource('selected', { type: 'geojson', data: EMPTY })
-        map.addLayer({
-          id: 'parcels-fill',
-          type: 'fill',
-          source: 'parcels',
-          paint: {
-            'fill-color': '#2563eb',
-            'fill-opacity': 0.18,
-          },
-        })
-        map.addLayer({
-          id: 'parcels-line',
-          type: 'line',
-          source: 'parcels',
-          paint: {
-            'line-color': '#1d4ed8',
-            'line-width': 1.2,
-          },
-        })
-        map.addLayer({
-          id: 'selected-fill',
-          type: 'fill',
-          source: 'selected',
-          paint: {
-            'fill-color': '#f59e0b',
-            'fill-opacity': 0.4,
-          },
-        })
-        map.addLayer({
-          id: 'selected-line',
-          type: 'line',
-          source: 'selected',
-          paint: {
-            'line-color': '#b45309',
-            'line-width': 2.5,
-          },
-        })
-        applySelected()
-        loadParcels()
-      })
-      map.on('moveend', scheduleLoad)
-
-      map.on('click', 'parcels-fill', (event: { features?: MapGeoJSONFeature[] }) => {
+      const onParcelClick = (event: { features?: MapGeoJSONFeature[] }) => {
         const raw = event.features?.[0]
         if (!raw?.geometry || !raw.properties) return
         onSelectRef.current({
@@ -156,14 +152,27 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
           geometry: raw.geometry as ParcelFeature['geometry'],
           properties: raw.properties as ParcelFeature['properties'],
         })
-      })
-
-      map.on('mouseenter', 'parcels-fill', () => {
+      }
+      const onParcelEnter = () => {
         map.getCanvas().style.cursor = 'pointer'
-      })
-      map.on('mouseleave', 'parcels-fill', () => {
+      }
+      const onParcelLeave = () => {
         map.getCanvas().style.cursor = ''
-      })
+      }
+
+      const onStyleReady = () => {
+        addParcelLayers(map, basemapRef.current)
+        applySelected()
+        loadParcels()
+        map.off('click', 'parcels-fill', onParcelClick)
+        map.off('mouseenter', 'parcels-fill', onParcelEnter)
+        map.off('mouseleave', 'parcels-fill', onParcelLeave)
+        map.on('click', 'parcels-fill', onParcelClick)
+        map.on('mouseenter', 'parcels-fill', onParcelEnter)
+        map.on('mouseleave', 'parcels-fill', onParcelLeave)
+      }
+      map.on('style.load', onStyleReady)
+      map.on('moveend', scheduleLoad)
 
       return () => {
         abortRef.current?.abort()
@@ -184,9 +193,111 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
       )
     }, [selectedFeature])
 
-    return <div ref={containerRef} className="map-canvas" aria-label="Pittsburgh parcel map" />
+    function switchBasemap(next: Basemap) {
+      if (next === basemapRef.current) return
+      basemapRef.current = next
+      setBasemap(next)
+      mapRef.current?.setStyle(STYLES[next])
+    }
+
+    return (
+      <div className="map-wrap">
+        <div ref={containerRef} className="map-canvas" aria-label="Pittsburgh parcel map" />
+        <div className="basemap-toggle" role="group" aria-label="Map view">
+          {MODES.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              aria-pressed={basemap === mode.id}
+              onClick={() => switchBasemap(mode.id)}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
   },
 )
+
+const LIGHT_PARCEL_PAINT = {
+  fill: '#2563eb',
+  fillOpacity: 0.18,
+  line: '#1d4ed8',
+  lineWidth: 1.2,
+  selectedLine: '#b45309',
+}
+
+const PARCEL_PAINT: Record<Basemap, typeof LIGHT_PARCEL_PAINT> = {
+  normal: LIGHT_PARCEL_PAINT,
+  terrain: LIGHT_PARCEL_PAINT,
+  satellite: {
+    fill: '#38bdf8',
+    fillOpacity: 0.22,
+    line: '#e0f2fe',
+    lineWidth: 1.4,
+    selectedLine: '#fde68a',
+  },
+}
+
+function addParcelLayers(map: Map, basemap: Basemap) {
+  const paint = PARCEL_PAINT[basemap]
+  if (!map.getSource('parcels')) {
+    map.addSource('parcels', { type: 'geojson', data: EMPTY })
+  }
+  if (!map.getSource('selected')) {
+    map.addSource('selected', { type: 'geojson', data: EMPTY })
+  }
+  if (!map.getLayer('parcels-fill')) {
+    map.addLayer({
+      id: 'parcels-fill',
+      type: 'fill',
+      source: 'parcels',
+      paint: {
+        'fill-color': paint.fill,
+        'fill-opacity': paint.fillOpacity,
+      },
+    })
+  }
+  if (!map.getLayer('parcels-line')) {
+    map.addLayer({
+      id: 'parcels-line',
+      type: 'line',
+      source: 'parcels',
+      paint: {
+        'line-color': paint.line,
+        'line-width': paint.lineWidth,
+      },
+    })
+  }
+  if (!map.getLayer('selected-fill')) {
+    map.addLayer({
+      id: 'selected-fill',
+      type: 'fill',
+      source: 'selected',
+      paint: {
+        'fill-color': '#f59e0b',
+        'fill-opacity': 0.45,
+      },
+    })
+  }
+  if (!map.getLayer('selected-line')) {
+    map.addLayer({
+      id: 'selected-line',
+      type: 'line',
+      source: 'selected',
+      paint: {
+        'line-color': paint.selectedLine,
+        'line-width': 2.5,
+      },
+    })
+  }
+  map.setPaintProperty('parcels-fill', 'fill-color', paint.fill)
+  map.setPaintProperty('parcels-fill', 'fill-opacity', paint.fillOpacity)
+  map.setPaintProperty('parcels-line', 'line-color', paint.line)
+  map.setPaintProperty('parcels-line', 'line-width', paint.lineWidth)
+  map.setPaintProperty('selected-line', 'line-color', paint.selectedLine)
+}
 
 function bboxOf(feature: ParcelFeature): [[number, number], [number, number]] {
   const coords: [number, number][] = []
