@@ -14,10 +14,11 @@ type Props = {
   loading: boolean
   error: string | null
   data: SelectedParcel | null
-  onClose: () => void
+  onClose?: () => void
+  embedded?: boolean
 }
 
-export function ParcelDetails({ loading, error, data, onClose }: Props) {
+export function ParcelDetails({ loading, error, data, onClose, embedded = false }: Props) {
   const [copied, setCopied] = useState(false)
   const [unit, setUnit] = useState<'acres' | 'sqft'>('acres')
 
@@ -44,7 +45,7 @@ export function ParcelDetails({ loading, error, data, onClose }: Props) {
   }
 
   return (
-    <aside className="panel" aria-live="polite">
+    <div className={embedded ? 'panel embedded' : 'panel'} aria-live="polite">
       <header className="panel-header">
         <div>
           <p className="eyebrow">Parcel highlights</p>
@@ -53,9 +54,7 @@ export function ParcelDetails({ loading, error, data, onClose }: Props) {
             <span>{address.line2}</span>
           </h2>
         </div>
-        <button type="button" className="icon-btn" onClick={onClose} aria-label="Close details">
-          ×
-        </button>
+        {onClose && <button type="button" className="icon-btn" onClick={onClose} aria-label="Close details">×</button>}
       </header>
 
       {loading && <p className="status">Loading parcel records…</p>}
@@ -163,7 +162,7 @@ export function ParcelDetails({ loading, error, data, onClose }: Props) {
           </Section>
         </div>
       )}
-    </aside>
+    </div>
   )
 }
 

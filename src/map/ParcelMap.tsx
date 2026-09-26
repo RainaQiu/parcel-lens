@@ -112,8 +112,8 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
           type: 'fill',
           source: 'parcels',
           paint: {
-            'fill-color': '#2563eb',
-            'fill-opacity': 0.18,
+            'fill-color': '#658f92',
+            'fill-opacity': 0.12,
           },
         })
         map.addLayer({
@@ -121,8 +121,8 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
           type: 'line',
           source: 'parcels',
           paint: {
-            'line-color': '#1d4ed8',
-            'line-width': 1.2,
+            'line-color': '#4b7a84',
+            'line-width': 1,
           },
         })
         map.addLayer({
@@ -130,8 +130,8 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
           type: 'fill',
           source: 'selected',
           paint: {
-            'fill-color': '#f59e0b',
-            'fill-opacity': 0.4,
+            'fill-color': '#e9a83c',
+            'fill-opacity': 0.42,
           },
         })
         map.addLayer({
@@ -139,8 +139,8 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
           type: 'line',
           source: 'selected',
           paint: {
-            'line-color': '#b45309',
-            'line-width': 2.5,
+            'line-color': '#af5e1d',
+            'line-width': 2.7,
           },
         })
         applySelected()
