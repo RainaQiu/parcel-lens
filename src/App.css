@@ -122,9 +122,53 @@ body,
   min-height: 0;
 }
 
+.map-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .map-canvas {
   width: 100%;
   height: 100%;
+}
+
+.map-corner {
+  position: absolute;
+  right: 12px;
+  bottom: 40px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.basemap-toggle {
+  display: flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(20, 32, 51, 0.14);
+}
+
+.basemap-toggle button {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 6px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.basemap-toggle button[aria-pressed='true'] {
+  background: var(--accent);
+  color: white;
 }
 
 .zoom-hint {
@@ -138,10 +182,73 @@ body,
   font-size: 13px;
 }
 
+.zoning-legend {
+  max-width: 260px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(20, 32, 51, 0.14);
+  overflow: hidden;
+}
+
+.zoning-legend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 8px 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.zoning-legend-toggle {
+  border: 0;
+  background: var(--wash);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.zoning-legend ul {
+  margin: 0;
+  padding: 0 12px 10px;
+  list-style: none;
+  max-height: min(46vh, 420px);
+  overflow: auto;
+}
+
+.zoning-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--muted);
+  padding: 2px 0;
+}
+
+.zoning-legend li span {
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(20, 32, 51, 0.2);
+}
+
+.workspace:has(.panel) .zoom-hint {
+  left: min(428px, calc(100% - 220px));
+}
+
 .panel {
   position: absolute;
   top: 12px;
-  right: 12px;
+  left: 12px;
   bottom: 12px;
   width: min(400px, calc(100% - 24px));
   background: var(--paper);
@@ -378,5 +485,13 @@ address {
   .panel {
     top: auto;
     height: 45%;
+  }
+
+  .map-corner {
+    bottom: 12px;
+  }
+
+  .workspace:has(.panel) .map-corner {
+    bottom: calc(45% + 20px);
   }
 }
