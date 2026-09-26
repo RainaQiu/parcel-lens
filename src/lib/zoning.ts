@@ -153,7 +153,7 @@ export async function fetchZoningAt(
     geometryType: 'esriGeometryPoint',
     inSR: '4326',
     spatialRel: 'esriSpatialRelIntersects',
-    outFields: 'zon_new,legendtype,full_zoning_type',
+    outFields: 'zon_new,legendtype,full_zoning_type,municode',
     returnGeometry: 'false',
     f: 'geojson',
   })
@@ -167,11 +167,25 @@ export async function fetchZoningAt(
         zon_new?: string
         legendtype?: string
         full_zoning_type?: string
+        municode?: string
       }
     | undefined
   if (!props) return null
   return {
     code: props.zon_new?.trim() ?? '',
     description: (props.legendtype || props.full_zoning_type || '').trim(),
+    definitionUrl: httpsUrl(props.municode),
+  }
+}
+
+function httpsUrl(raw: string | undefined): string | null {
+  const value = raw?.trim() ?? ''
+  if (!value) return null
+  try {
+    const parsed = new URL(value)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+    return parsed.href
+  } catch {
+    return null
   }
 }

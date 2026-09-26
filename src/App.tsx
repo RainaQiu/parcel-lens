@@ -4,8 +4,11 @@ import { fetchParcelByPin, featureCentroid, normalizePin } from './lib/arcgis'
 import { fetchAssessment, searchAssessments } from './lib/ckan'
 import { fetchZoningAt } from './lib/zoning'
 import { ParcelMap, type ParcelMapHandle } from './map/ParcelMap'
+import { loadBlockOrder, saveBlockOrder, type PanelBlockId } from './panel/blockOrder'
+import { LayoutSettings } from './panel/LayoutSettings'
 import { ParcelDetails } from './panel/ParcelDetails'
 import type { ParcelFeature, SearchHit, SelectedParcel } from './lib/types'
+import { SettingsIcon } from './ui/icons'
 import './App.css'
 
 const MIN_ZOOM = 16
@@ -20,7 +23,23 @@ export default function App() {
   const [selected, setSelected] = useState<SelectedParcel | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [blockOrder, setBlockOrder] = useState<PanelBlockId[]>(() => loadBlockOrder())
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const selectAbort = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    if (!settingsOpen) return
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') setSettingsOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [settingsOpen])
+
+  function updateBlockOrder(next: PanelBlockId[]) {
+    setBlockOrder(next)
+    saveBlockOrder(next)
+  }
 
   useEffect(() => {
     const trimmed = query.trim()
@@ -146,6 +165,18 @@ export default function App() {
           )}
           {searchError && <p className="search-error">{searchError}</p>}
         </form>
+        <div className="topbar-actions">
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => setSettingsOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={settingsOpen}
+            aria-label="Parcel details settings"
+          >
+            <SettingsIcon />
+          </button>
+        </div>
       </header>
 
       <main className="workspace">
@@ -163,6 +194,7 @@ export default function App() {
             loading={loading}
             error={error}
             data={selected}
+            blockOrder={blockOrder}
             onClose={() => {
               selectAbort.current?.abort()
               setSelected(null)
@@ -171,6 +203,13 @@ export default function App() {
           />
         )}
       </main>
+
+      <LayoutSettings
+        open={settingsOpen}
+        order={blockOrder}
+        onClose={() => setSettingsOpen(false)}
+        onChange={updateBlockOrder}
+      />
     </div>
   )
 }

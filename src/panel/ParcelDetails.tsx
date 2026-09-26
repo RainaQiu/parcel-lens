@@ -10,17 +10,21 @@ import {
 } from '../lib/format'
 import { scoreParcel, scoreSummary } from '../lib/score'
 import type { Barrier, SelectedParcel } from '../lib/types'
+import { type PanelBlockId } from './blockOrder'
+import { ExpandIcon, ShrinkIcon } from '../ui/icons'
 
 type Props = {
   loading: boolean
   error: string | null
   data: SelectedParcel | null
+  blockOrder: PanelBlockId[]
   onClose: () => void
 }
 
-export function ParcelDetails({ loading, error, data, onClose }: Props) {
+export function ParcelDetails({ loading, error, data, blockOrder, onClose }: Props) {
   const [copied, setCopied] = useState(false)
   const [unit, setUnit] = useState<'acres' | 'sqft'>('acres')
+  const [expanded, setExpanded] = useState(false)
 
   const assessment = data?.assessment ?? null
   const address = siteAddress(assessment)
@@ -44,29 +48,11 @@ export function ParcelDetails({ loading, error, data, onClose }: Props) {
     window.setTimeout(() => setCopied(false), 1500)
   }
 
-  return (
-    <aside className="panel" aria-live="polite">
-      <header className="panel-header">
-        <div>
-          <p className="eyebrow">Parcel highlights</p>
-          <h2>
-            {address.line1}
-            <span>{address.line2}</span>
-          </h2>
-        </div>
-        <button type="button" className="icon-btn" onClick={onClose} aria-label="Close details">
-          ×
-        </button>
-      </header>
-
-      {loading && <p className="status">Loading parcel records…</p>}
-      {error && <p className="status error">{error}</p>}
-
-      {!loading && data && (
-        <div className="panel-body">
-          <ScoreCard data={data} />
-
-          <section className="card">
+  const blocks: Record<PanelBlockId, ReactNode> | null = data
+    ? {
+        score: <ScoreCard key="score" data={data} />,
+        highlights: (
+          <section key="highlights" className="card">
             <div className="field">
               <span className="label">Full address</span>
               <div className="value-row">
@@ -96,8 +82,9 @@ export function ParcelDetails({ loading, error, data, onClose }: Props) {
             <Field label="Zoning description" value={data.zoning?.description} />
             <Field label="Parcel use description" value={assessment?.USEDESC} />
           </section>
-
-          <Section title="Parcel details">
+        ),
+        parcel: (
+          <Section key="parcel" title="Parcel details">
             <Field label="Parcel ID" value={data.feature.properties.PIN} />
             <Field label="Site address" value={address.line1} />
             <Field label="Site city" value={assessment?.PROPERTYCITY} />
@@ -106,8 +93,9 @@ export function ParcelDetails({ loading, error, data, onClose }: Props) {
             <Field label="Site ZIP" value={assessment?.PROPERTYZIP} />
             <Field label="Map block lot" value={data.feature.properties.MAPBLOCKLOT} />
           </Section>
-
-          <Section title="Owner information">
+        ),
+        owner: (
+          <Section key="owner" title="Owner information">
             <Field label="Owner type" value={assessment?.OWNERDESC} />
             <Field label="Mailing address" value={mailingAddress(assessment)} pre />
             <p className="note">
@@ -115,8 +103,9 @@ export function ParcelDetails({ loading, error, data, onClose }: Props) {
               County Ordinance 3478-07).
             </p>
           </Section>
-
-          <Section title="Property sales & value">
+        ),
+        sales: (
+          <Section key="sales" title="Property sales & value">
             <Field label="Last sale price" value={formatMoney(assessment?.SALEPRICE)} />
             <Field label="Last sale date" value={assessment?.SALEDATE} />
             <Field label="Sale description" value={assessment?.SALEDESC} />
@@ -132,16 +121,31 @@ export function ParcelDetails({ loading, error, data, onClose }: Props) {
             <Field label="County building" value={formatMoney(assessment?.COUNTYBUILDING)} />
             <Field label="Tax status" value={assessment?.TAXDESC} />
           </Section>
-
-          <Section title="Zoning, land use & vacancy">
+        ),
+        zoning: (
+          <Section key="zoning" title="Zoning, land use & vacancy">
             <Field label="Zoning code" value={data.zoning?.code} />
             <Field label="Zoning description" value={data.zoning?.description} />
+            {data.zoning?.definitionUrl && (
+              <div className="field">
+                <span className="label">Zoning district definition</span>
+                <a
+                  className="value-link"
+                  href={data.zoning.definitionUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Zoning District Definition
+                </a>
+              </div>
+            )}
             <Field label="Parcel use code" value={assessment?.USECODE} />
             <Field label="Parcel use description" value={assessment?.USEDESC} />
             <Field label="Class" value={assessment?.CLASSDESC} />
           </Section>
-
-          <Section title="Geographic information">
+        ),
+        geo: (
+          <Section key="geo" title="Geographic information">
             <Field
               label="County-provided acres"
               value={acres !== null ? formatNumber(acres, 2) : '—'}
@@ -153,18 +157,51 @@ export function ParcelDetails({ loading, error, data, onClose }: Props) {
             <Field label="Neighborhood" value={assessment?.NEIGHDESC} />
             <Field label="Neighborhood code" value={assessment?.NEIGHCODE} />
             <Field label="School district" value={assessment?.SCHOOLDESC} />
-            <Field
-              label="Centroid coordinates"
-              value={formatCentroid(data.feature)}
-            />
+            <Field label="Centroid coordinates" value={formatCentroid(data.feature)} />
           </Section>
-
-          <Section title="Plat, block, lot, legal data">
+        ),
+        legal: (
+          <Section key="legal" title="Plat, block, lot, legal data">
             <Field label="Legal description" value={legalDescription(assessment)} />
             <Field label="Deed book" value={assessment?.DEEDBOOK} />
             <Field label="Deed page" value={assessment?.DEEDPAGE} />
           </Section>
+        ),
+      }
+    : null
+
+  return (
+    <aside className={expanded ? 'panel panel-expanded' : 'panel'} aria-live="polite">
+      <header className="panel-header">
+        <div>
+          <p className="eyebrow">Parcel highlights</p>
+          <h2>
+            {address.line1}
+            <span>{address.line2}</span>
+          </h2>
         </div>
+        <div className="panel-actions">
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => setExpanded((value) => !value)}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Shrink' : 'Expand details'}
+            title={expanded ? 'Shrink' : 'Expand'}
+          >
+            {expanded ? <ShrinkIcon /> : <ExpandIcon />}
+          </button>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close details">
+            ×
+          </button>
+        </div>
+      </header>
+
+      {loading && <p className="status">Loading parcel records…</p>}
+      {error && <p className="status error">{error}</p>}
+
+      {!loading && data && blocks && (
+        <div className="panel-body">{blockOrder.map((id) => blocks[id])}</div>
       )}
     </aside>
   )

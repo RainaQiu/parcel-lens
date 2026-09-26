@@ -57,6 +57,7 @@ export type AssessmentRow = {
 export type ZoningInfo = {
   code: string
   description: string
+  definitionUrl: string | null
 }
 
 export type SearchHit = {
