@@ -1,6 +1,6 @@
 # Track 1 地块开发初筛工具：数据评估与产品需求草案
 
-版本：v0.8｜2026-09-26｜工作线 3；合并团队数据目录映射与会议决定
+版本：v0.9｜2026-09-26｜工作线 3；明确 parcel 关联、置信度与 N/A 处理
 
 ## 1. 先说结论
 
@@ -94,11 +94,35 @@
 | **B12 暂缓** | 财务数据尚未确定 | 暂不做财务资料卡或分析。 | 不计入当前 Basic；评估值、成交价不得冒充财务可行性。 |
 | **Nice 3 两地块比较** | 两块地各自的分区与地形证据 | 只在规则版本、数据源/vintage、图层覆盖和证据范围一致时逐字段比较；连接键仍为各自 parcel ID。 | 任一侧缺证据或版本不一致时可比较事实，不排序等级。 |
 | **Nice 4 采空区/FEMA** | [Pittsburgh Undermined Areas](https://data.wprdc.org/dataset/undermined-areas)（Core/P1）；[FEMA National Flood Hazard Layer](https://www.fema.gov/flood-maps/national-flood-hazard-layer)（Core/P1）；Parcel Boundaries | 与 B5 相同的 polygon spatial join；保存命中类型、重叠范围、图层/面板或社区标识、版本和局限。 | 未核覆盖、精度或版本前不接入 B6。命中是专业复核线索，不是安全或正式洪水认定。 |
-| **Nice 5 Permit 历史** | [PLI Permits](https://data.wprdc.org/dataset/pli-permits)（Core/P1）；[OneStopPGH](https://onestoppgh.pittsburghpa.gov/)（Core/P2）；ZBA decisions（Useful/P2） | 优先用 parcel ID；否则用标准化地址并保存匹配质量。显示 permit/application ID、类型、状态、日期和官方记录链接。 | 仅作历史背景/复核入口，不推断当前方案获批概率；匹配不可靠时显示“可能相关”或未知。 |
+| **Nice 5 Permit 历史** | [PLI Permits](https://data.wprdc.org/dataset/pli-permits)（Core/P1）；[OneStopPGH](https://onestoppgh.pittsburghpa.gov/)（Core/P2）；ZBA decisions（Useful/P2） | PLI 有 parcel ID 时作精确关联，否则按标准化地址；OneStopPGH 用 application number 作记录键、按地址关联；ZBA 用 case number 作记录键，优先提取 parcel ID，否则按地址并进入人工复核。显示记录 ID、类型、状态、日期、关联质量和官方链接。 | 仅作历史背景/复核入口，不推断当前方案获批概率；多候选、模糊地址或无法唯一定位时不强行写入 parcel ID，显示“可能相关”或 N/A。 |
 | **Nice 6 最小财务资料卡** | Property Sale Transactions（Core/P2）；HUD FMR（Core/P2）；HUD Income Limits、BLS PPI（Useful/P2）；Zillow/Redfin/Realtor.com 公共聚合数据（Core/P2）；用户手工样本 | 每个样本保存地址/区域、日期、类型、数值、来源、空间粒度和筛选理由；销售记录先过滤非正常/名义转让。 | 只作资料卡和假设记录，不自动形成投资建议或 `overall_band`；上市网站的公开聚合数据不等于 listing-level 数据授权。 |
 | **Later 区域/政策/批量功能** | ACS、Decennial Census、CHAS、TIGER/Line、Census GEOID；再按功能加入 transit、EJScreen、NLCD 等 | 用 GEOID/FIPS 连接统计地理；维护 geography vintage crosswalk，并展示覆盖率、误差和缺失。 | 不回填到单地块许可判断。完成代表性、公平性和政策规则验证前，不开放社区排名或投资排序。 |
 
-**共享数据契约**：所有数据适配器至少输出 `source_id`、`source_url`、`steward`、`retrieved_at`、`source_updated_at`/`vintage`、`geographic_scope`、`join_method`、`match_quality`、`raw_identifier` 和 `transform_notes`。空间叠加另输出 `geometry_source`、`crs`、`intersects`、`overlap_area`、`overlap_ratio` 与精度/覆盖说明。这样 B6、B7、B9、Nice 3 和导出功能复用同一证据，不在页面层重新猜测来源。
+#### 3.1.1 Parcel 关联结果与 N/A 规则
+
+`parcel_id` 只使用 Parcel Boundaries 中的规范 ID（当前实现字段为 `PIN`）。其他数据源的编号保留在 `source_native_parcel_id` 或 `source_record_id`，不得把 permit ID、application number、case number、ZIP、FIPS、GEOID 或面板号改名冒充 parcel ID。关联结果统一写入 `parcel_link_status`，并保留方法、质量和版本；无法安全落到唯一地块时，`parcel_id = null`。
+
+| 数据源 | 原生 parcel ID 情况 | 处理后的 `parcel_link_status` | 关联方法与产物 | 无法可靠关联时 |
+|---|---|---|---|---|
+| Parcel Boundaries | 有：`PIN` | `exact_id` | 作为规范 `parcel_id`；先检查非空、唯一性、格式和几何有效性。 | 边界或 ID 缺失则该地块不可分析，显示 N/A 并停止依赖 parcel 的计算。 |
+| Property Assessments | 有：`PARID` | `exact_id` | 规范化大小写、空格、连字符和前导零后与 `PIN` 对照；保存原值和变换记录。 | 无唯一匹配时 `parcel_id = null`，评估字段显示 N/A，不按地址自动覆盖。 |
+| Property Sale Transactions | 通常有 parcel ID | `exact_id` | 先做与边界 ID 的一对一/一对多核验，再保留 sale/deed 记录键。 | 无 ID 或历史拆并地块无法确认时转 `manual_review`；价格不进入自动评分。 |
+| Zoning Districts | 无 | `derived_spatial` | 以完整 parcel polygon 与 zoning polygon 相交，保存全部 district/overlay、重叠面积和比例。 | 几何、坐标系、覆盖或版本不可用时显示 N/A；不得退回单点结果冒充整地块结论。 |
+| Steep Slopes、Undermined Areas | 无 | `derived_spatial` | polygon intersection；保存 `intersects`、`overlap_area`、`overlap_ratio` 和图层版本。 | 图层不可用、无覆盖或空间计算失败时显示 N/A；N/A 不等于未相交。 |
+| FEMA NFHL | 无；有社区/面板等源标识 | `derived_spatial` | parcel polygon 与洪水图层相交，保留 zone、panel/community ID、图层版本和适用限制。 | 服务、覆盖、精度或版本无法核实则显示 N/A，不给出正式洪水认定。 |
+| PLI Permits | 部分记录有 | 有 ID 为 `exact_id`；否则 `derived_address` | 有 parcel 字段时先与 `PIN` 校验；否则标准化地址并保存候选数、距离与匹配质量。 | 多候选或仅模糊匹配时 `parcel_id = null`、`needs_review = true`，显示“可能相关”或 N/A。 |
+| OneStopPGH | 不把 application number 当 parcel ID | `derived_address` 或 `manual_review` | application number 作 `source_record_id`；用标准化地址或经核验坐标找候选 parcel。 | 没有地址、地理位置或唯一候选时显示 N/A，并保留官方记录入口。 |
+| ZBA decisions | 有时在文本中出现 | `exact_id`、`derived_address` 或 `manual_review` | case number 作记录键；提取出的 parcel ID 必须回查边界，否则按地址生成候选并复核。 | 多候选、地址缺失或文本提取不确定时显示 N/A，不进入自动规则。 |
+| Zoning Code | 不适用直接 parcel join | 继承 zoning evidence 的 `parcel_id` | 按 zoning district、法规章节、生效日期连接；代码文本自身不生成 parcel ID。 | district 或法规版本未知时规则结果显示 N/A，保留待核章节。 |
+| HUD FMR、Income Limits、Zillow/Redfin/Realtor 区域聚合 | 无 parcel ID | `regional_context` | 按 ZIP、县、HUD Area 等区域键连接，并明确 `geographic_level`；只能作为区域背景。 | 无对应区域或 vintage 时显示 N/A；不得把区域数值写成该地块事实。 |
+| ACS、Census、CHAS | 无 parcel ID | `regional_context` | 用 GEOID/FIPS 和统计区边界定位地块所属区域，保留 geography vintage 和误差。 | crosswalk 或边界版本不兼容时显示 N/A；不回填单地块许可判断。 |
+| BLS PPI 等全国/行业指数 | 无且不适用 | `n/a` | 仅按 series ID、月份与财务情景连接，`parcel_id = null`。 | 页面显示“非地块级数据 / N/A”，只作情景背景。 |
+
+**关联优先级与可用范围**：`exact_id` ＞ 已核验的 `derived_spatial` ＞ 唯一且高质量的 `derived_address` ＞ `manual_review`。只有前三类可作为地块证据；地址关联必须展示质量。`manual_review`、模糊匹配和 `n/a` 不进入自动等级或评分。`regional_context` 可在同一地块报告中展示，但必须标注区域粒度，不能转成 parcel-level claim。
+
+**规范关联表 `parcel_data_link`** 至少保存：`parcel_id`、`source_id`、`source_record_id`、`source_native_parcel_id`、`parcel_link_status`、`join_method`、`match_quality`、`intersects`、`overlap_area`、`overlap_ratio`、`distance_m`、`geographic_level`、`source_version`、`retrieved_at`、`n_a_reason`、`needs_review`。同一源记录关联多个候选 parcel 时，每个候选单独一行，但在人工确认前均不得标成 `exact_id`。
+
+**共享数据契约**：所有数据适配器至少输出 `source_id`、`source_url`、`steward`、`retrieved_at`、`source_updated_at`/`vintage`、`geographic_scope`、`parcel_link_status`、`source_native_parcel_id`、`join_method`、`match_quality`、`raw_identifier`、`n_a_reason`、`needs_review` 和 `transform_notes`。空间叠加另输出 `geometry_source`、`crs`、`intersects`、`overlap_area`、`overlap_ratio` 与精度/覆盖说明。这样 B6、B7、B9、Nice 3 和导出功能复用同一证据，不在页面层重新猜测来源。
 
 ### 3.2 数据进入产品前的验收清单
 
@@ -108,9 +132,12 @@
 2. 分区图层能返回分区编码；跨多个分区时能识别并显示。
 3. 核对官方 Zoning Map 与 GIS 分区字段是否一致；没有具体住宅方案时，不推断用途许可。
 4. 环境叠加的面积单位、坐标系及重叠比例经人工抽查。
-5. 如果使用 permits，先测地址/parcel ID 匹配率和同一地址多条记录情况。
+5. 对每个有原生 parcel ID 的源，测量非空率、与边界 `PIN` 的精确命中率、一对多/多对一和历史拆并地块情况。
+6. 对空间关联，核验坐标系、几何有效性、图层覆盖、边界接触规则及至少一个人工抽查样本；单点命中不能替代全 parcel polygon 相交。
+7. 对地址关联，记录标准化步骤、候选数、距离和匹配质量；多候选或模糊匹配进入 `manual_review`，不得自动进入评分。
+8. 对区域数据，核验 ZIP/FIPS/GEOID 与 vintage；页面必须显示区域粒度，不能把区域指标写成地块属性。
 
-任一环节失败时，界面应显示“数据缺失/无法判断”，保留已得到的证据；不得默默按低风险或满分处理。
+任一环节失败时，界面应显示“数据缺失/无法判断”或 N/A，并同时展示 `n_a_reason` 和可执行的下一步，保留已得到的证据；不得默默按低风险、零值或满分处理。N/A 表示当前无法形成可靠地块关联，不表示该风险、记录或现象不存在。
 
 ## 4. PRD：网站具体功能
 
