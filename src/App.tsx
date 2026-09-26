@@ -164,6 +164,7 @@ export default function App() {
             error={error}
             data={selected}
             onClose={() => {
+              selectAbort.current?.abort()
               setSelected(null)
               setError(null)
             }}

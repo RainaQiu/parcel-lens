@@ -142,13 +142,7 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
       }
 
       const applySelected = () => {
-        const source = map.getSource('selected') as GeoJSONSource | undefined
-        const feature = selectedRef.current
-        source?.setData(
-          feature
-            ? { type: 'FeatureCollection', features: [feature] }
-            : EMPTY,
-        )
+        applySelectedHighlight(map, selectedRef.current)
       }
 
       const onParcelClick = (event: { features?: MapGeoJSONFeature[] }) => {
@@ -156,8 +150,8 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
         if (!raw?.geometry || !raw.properties) return
         onSelectRef.current({
           type: 'Feature',
-          geometry: raw.geometry as ParcelFeature['geometry'],
-          properties: raw.properties as ParcelFeature['properties'],
+          geometry: structuredClone(raw.geometry) as ParcelFeature['geometry'],
+          properties: { ...raw.properties } as ParcelFeature['properties'],
         })
       }
       const onParcelEnter = () => {
@@ -209,12 +203,7 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
     useEffect(() => {
       const map = mapRef.current
       if (!map?.isStyleLoaded()) return
-      const source = map.getSource('selected') as GeoJSONSource | undefined
-      source?.setData(
-        selectedFeature
-          ? { type: 'FeatureCollection', features: [selectedFeature] }
-          : EMPTY,
-      )
+      applySelectedHighlight(map, selectedFeature)
     }, [selectedFeature])
 
     useEffect(() => {
@@ -281,7 +270,13 @@ const LIGHT_PARCEL_PAINT = {
   fillOpacity: 0.18,
   line: '#1d4ed8',
   lineWidth: 1.2,
-  selectedLine: '#b45309',
+}
+
+const SELECTED_PAINT = {
+  fill: '#c026d3',
+  fillOpacity: 0.55,
+  line: '#fafafa',
+  lineWidth: 3,
 }
 
 const PARCEL_PAINT: Record<Basemap, typeof LIGHT_PARCEL_PAINT> = {
@@ -292,7 +287,6 @@ const PARCEL_PAINT: Record<Basemap, typeof LIGHT_PARCEL_PAINT> = {
     fillOpacity: 0.22,
     line: '#e0f2fe',
     lineWidth: 1.4,
-    selectedLine: '#fde68a',
   },
 }
 
@@ -382,8 +376,8 @@ function addMapLayers(map: Map, basemap: Basemap) {
       type: 'fill',
       source: 'selected',
       paint: {
-        'fill-color': '#f59e0b',
-        'fill-opacity': 0.45,
+        'fill-color': SELECTED_PAINT.fill,
+        'fill-opacity': SELECTED_PAINT.fillOpacity,
       },
     })
   }
@@ -393,8 +387,8 @@ function addMapLayers(map: Map, basemap: Basemap) {
       type: 'line',
       source: 'selected',
       paint: {
-        'line-color': paint.selectedLine,
-        'line-width': 2.5,
+        'line-color': SELECTED_PAINT.line,
+        'line-width': SELECTED_PAINT.lineWidth,
       },
     })
   }
@@ -402,7 +396,26 @@ function addMapLayers(map: Map, basemap: Basemap) {
   map.setPaintProperty('parcels-fill', 'fill-opacity', paint.fillOpacity)
   map.setPaintProperty('parcels-line', 'line-color', paint.line)
   map.setPaintProperty('parcels-line', 'line-width', paint.lineWidth)
-  map.setPaintProperty('selected-line', 'line-color', paint.selectedLine)
+  map.setPaintProperty('selected-fill', 'fill-color', SELECTED_PAINT.fill)
+  map.setPaintProperty('selected-fill', 'fill-opacity', SELECTED_PAINT.fillOpacity)
+  map.setPaintProperty('selected-line', 'line-color', SELECTED_PAINT.line)
+  map.setPaintProperty('selected-line', 'line-width', SELECTED_PAINT.lineWidth)
+}
+
+function applySelectedHighlight(map: Map, feature: ParcelFeature | null) {
+  const source = map.getSource('selected') as GeoJSONSource | undefined
+  source?.setData(
+    feature
+      ? { type: 'FeatureCollection', features: [feature] }
+      : { type: 'FeatureCollection', features: [] },
+  )
+  const visibility = feature ? 'visible' : 'none'
+  if (map.getLayer('selected-fill')) {
+    map.setLayoutProperty('selected-fill', 'visibility', visibility)
+  }
+  if (map.getLayer('selected-line')) {
+    map.setLayoutProperty('selected-line', 'visibility', visibility)
+  }
 }
 
 function setZoningLayerVisibility(map: Map, visible: boolean) {
