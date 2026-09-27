@@ -1,38 +1,38 @@
-# ParcelLens｜Slack 住房专家访谈提纲
+# ParcelLens Slack housing-expert interview guide
 
-版本：2026-09-26 v0.4。用途：用异步专家反馈校准工作线 3 的产品假设；**不等待回复再写 PRD、收集数据或设计接口**。已收到一条财务线索，以及一条用户转述的评分回复。
+Version: 2026-09-26 v0.4. Use asynchronous expert feedback to calibrate Track 3 product assumptions. **Do not wait for replies before writing the PRD, collecting data, or designing interfaces.** One financial clue and one user-relayed scoring reply are already in hand.
 
-## 1. 问题筛选原则
+## 1. What to ask
 
-只问公开资料无法回答的**真实决策、工作顺序、信任门槛与反例**。问题应允许对方用匿名案例回答；不索取未公开的项目地址、客户资料或内部文件。每条回复记录回答者的专业角色和日期，不把一位专家的意见写成所有用户的共识。按组织者在 #housing-sme-help 的指示，**每个问题单独开 thread**，格式为 Team / track、What we are building、Our question、What we currently believe；工具定位为 decision support。
+Ask only about **real decisions, work order, trust thresholds, and counterexamples** that public sources cannot answer. Allow anonymous cases. Do not request unpublished project addresses, client files, or internal documents. Record each reply with the respondent’s professional role and date. Do not treat one expert as standing for all users. Per organizer guidance in #housing-sme-help, **open a separate thread per question**, using Team / track, What we are building, Our question, What we currently believe. Position the tool as decision support.
 
-已查到、无需占用专家时间反复询问的事项：Pittsburgh 有 Basic、Site Plan、Planning Commission 三类 Zoning Review；用途在分区表中允许仍须满足地块条件；[OneStopPGH Insights](https://insightshelp.pittsburghpa.gov/)公开规划和许可记录；[URA Rental Gap Program](https://www.ura.org/pages/rental-gap-program)有明确的项目资格与承保要求；这些分别可由[市府流程](https://www.pittsburghpa.gov/Business-Development/City-Planning/Zoning/Planning-Applications-and-Processes)、[Zoning FAQ](https://www.pittsburghpa.gov/Business-Development/City-Planning/Zoning/Zoning-FAQ)及项目网页直接查询。
+Already known, so do not spend expert time repeating it: Pittsburgh has Basic, Site Plan, and Planning Commission Zoning Review; a use listed as allowed in the district table still must meet parcel conditions; [OneStopPGH Insights](https://insightshelp.pittsburghpa.gov/) publishes planning and permit records; the [URA Rental Gap Program](https://www.ura.org/pages/rental-gap-program) has explicit project eligibility and underwriting requirements. Those can be read from [city process pages](https://www.pittsburghpa.gov/Business-Development/City-Planning/Zoning/Planning-Applications-and-Processes), the [Zoning FAQ](https://www.pittsburghpa.gov/Business-Development/City-Planning/Zoning/Zoning-FAQ), and the program page.
 
-## 2. 已收到的专家线索与仍需问的事
+## 2. Expert clues already received, and what is still open
 
-用户提供的 Slack 记录中，Het Sheth 已询问“现有工具仍难回答什么、由谁承担”。Steve Wray（SME, City of Pittsburgh）回答：**financial feasibility 是关键问题**，开发商或 nonprofit 会用到，需找相似社区的可比租金/价值、房地产租赁或销售数据。来源是用户在本次对话提供的记录；未取得消息 permalink，也未针对本项目的具体住宅方案验证。**不要再次泛问“最大的可行性问题是什么”**。
+In the Slack record the user provided, Het Sheth asked what existing tools still cannot answer and who bears that gap. Steve Wray (SME, City of Pittsburgh) answered that **financial feasibility is a key question**: developers and nonprofits need comparable rents/values or lease/sale data from similar neighborhoods. Source: the record the user supplied in this conversation. There is no message permalink, and it was not validated against a specific housing proposal for this project. **Do not ask again, in generic form, what the biggest feasibility problem is.**
 
-用户随后转述的另一条 Slack 回复明确说**没有预设评分系统**，团队可自行提出对用户直观的方案，并以绿／黄／红为例。这回答了“是否存在专家指定公式”，因此**不再重复问 Q1 或要求对方给权重**。该回复没有给出 ParcelLens 的实际阈值，也不能证明当前缺财务数据的原型可用于真实投资决策。回答者身份、发言时间、消息链接待补；团队暂按 [PRD 4.4](Track1_Data_Assessment_and_PRD.md)提出可复核的分类规则。
+A later Slack reply relayed by the user said there is **no prescribed scoring system**. The team may propose something intuitive for users, with green / amber / red as an example. That answers whether an expert-specified formula exists, so **do not resend Q1 or ask for weights**. The reply did not give ParcelLens thresholds, and it does not prove that a prototype missing financial data is fit for real investment decisions. Respondent identity, timestamp, and message link are still missing. Until then, the team uses reviewable classification rules from [PRD 4.4](Track1_Data_Assessment_and_PRD.md).
 
-## 3. 最值得在 office hours 问的独立问题
+## 3. Independent questions worth asking in office hours
 
-| 问题 | 公开资料回答不了什么 | 回复会改变 PRD 哪一项 |
+| Question | What public sources cannot answer | Which PRD item a reply would change |
 |---|---|---|
-| **Q2 财务边界**：既然财务可行性很关键，若本周末原型只核查 zoning/环境并明确标记“财务未评估”，开发商或 nonprofit 会在什么早期决策中使用它？若不会，最少还要增加哪一项财务输入或可比数据？ | Steve 已指出关键数据方向，但没有说明非财务初筛是否仍有独立价值或最低财务需求。 | 是否调整主用户、Basic 范围及财务提示/增强项。 |
-| **Q3 初筛等级反例复核（拿到真实案例后再问）**：这是我们的绿／黄／红／灰规则和一个真实地块 + 方案报告；哪一处可能让开发商误以为地块已可建或财务可行？若缺尺寸或财务资料，应该显示灰色、保留黄色障碍旗，还是收窄等级名称？ | 专家已允许团队自定易懂的系统，尚未验证具体阈值与用户理解；真实反例比再次问公式更有价值。 | B6 的阈值、措辞和演示前审查。 |
+| **Q2 Financial boundary:** Given that financial feasibility is critical, if this weekend’s prototype only checks zoning/environment and clearly marks “finances not assessed,” in which early decisions would a developer or nonprofit still use it? If they would not, what is the smallest financial input or comparable-data check to add? | Steve already pointed to the data direction, but not whether a non-financial screen still has independent value or what the minimum financial need is. | Whether to adjust the primary user, Basic scope, and financial prompts / extras. |
+| **Q3 Screening-grade counterexample review (ask only after a real case exists):** Here are our green / amber / red / gray rules and a real parcel + proposal report. Where might a developer wrongly think the parcel is already buildable or financially viable? If dimensional or financial data is missing, should we show gray, keep an amber obstacle flag, or narrow the grade name? | Experts already allowed the team to define a readable system. Specific thresholds and user interpretation are unverified. A real counterexample is more valuable than asking for a formula again. | B6 thresholds, wording, and pre-demo review. |
 
-若只能再发一题，优先用 Q2 验证原型对真实决策是否有价值。Q3 待数据线交付一块真实地块与团队暂定等级后发送，不能编造案例；已回答的 Q1 不再发送。
+If only one more question can be sent, use Q2 to test whether the prototype has value for a real decision. Send Q3 only after the data track delivers a real parcel and the team has a provisional grade. Do not invent a case. Do not resend answered Q1.
 
-## 4. 针对不同专业角色的可选追问
+## 4. Optional follow-ups by professional role
 
-- **Municipal Planner / zoning 专家**：对于一个真实的拟建一户住宅案例，哪一种常见的 overlay、现有合法用途或尺寸条件会让“用途表显示 permitted”的表达仍显著误导？我们应使用什么准确措辞？请指出反例或法规入口。公开资料可查规则，但无法替代专家选出最常见、最容易误解的反例。
-- **Small/Mid-Size Developer**：在筛地时，土地/法规初筛和租售可比数据通常谁先查？若没有 comps，你会不会仍用一份有来源的地块障碍报告决定是否继续尽调？请给最近一例。公开资料无法测得实际使用顺序。
-- **Housing Nonprofit/CDC**：若不做完整 pro forma，你希望报告中哪项财务或资助条件最早被提醒为“未核查”？公开项目指南列资格，不能说明早期筛地工作的优先顺序。
-- **Policy Analyst**：要把地块结果聚合成社区/政策洞察，你会要求什么最小覆盖率、可比性或缺失说明？哪种排序可能导致错误的政策判断？公开政策网页无法给本产品的分析可接受门槛。
+- **Municipal planner / zoning expert:** For a real proposed single-family house, which common overlay, existing lawful use, or dimensional condition would make “the use table shows permitted” still badly misleading? What precise wording should we use? Point to a counterexample or code entry. Public sources can list rules; they cannot replace an expert picking the most common, most easily misunderstood cases.
+- **Small/mid-size developer:** When screening sites, which usually comes first: land/code screening or rent/sale comps? Without comps, would you still use a sourced parcel-obstacle report to decide whether to continue due diligence? Give a recent example. Public sources cannot measure actual work order.
+- **Housing nonprofit / CDC:** If you skip a full pro forma, which financial or funding condition should the report flag earliest as “not checked”? Public program guides list eligibility; they do not explain early site-screening priorities.
+- **Policy analyst:** To roll parcel results into neighborhood/policy insight, what minimum coverage, comparability, or missing-data disclosure would you require? Which ranking would risk a wrong policy judgment? Public policy pages cannot set this product’s analysis bar.
 
-## 5. 可直接发送的英文 Slack 草稿（每段单独开 thread）
+## 5. English Slack drafts ready to send (one thread each)
 
-**Thread B：承接 Steve Wray 的财务线索，另发一帖**
+**Thread B: follow Steve Wray’s financial clue in a new post**
 
 > **Team / track:** ParcelLens, Track 1 — Development Feasibility Navigator
 >
@@ -42,15 +42,15 @@
 >
 > **What we currently believe:** A land-use/site score should be kept separate from project financial feasibility; we can flag missing comps rather than imply a project is viable.
 
-这是**待发送草稿**，未向 Slack 发消息。若用户转述的评分回复已经直接回答了此题的实际使用价值，应先核对原 thread，避免重复；其现有文字本身没有给出最小财务输入。具体等级复核等真实案例完成后再单独开 thread。
+This is a **draft to send**, not a message already posted to Slack. If the relayed scoring reply already answered whether the screen has practical value, check the original thread first to avoid duplication. Its current text does not name a minimum financial input. Open a separate thread for grade review after a real case exists.
 
-## 6. 晚到回复的处理
+## 6. Handling late replies
 
-| 记录字段 | 说明 |
+| Field | Notes |
 |---|---|
-| 回答者角色、日期、问题编号 | 保持可追溯；不必记录个人隐私。 |
-| 原话或匿名案例 | 把证据与我们的解释分开。 |
-| 影响的需求 ID | 如 B4 zoning、B6 评分、B7 障碍、B10 共用报告。 |
-| 处理 | 接受 / 需权威来源复核 / 暂不采用，附理由和负责人。 |
+| Respondent role, date, question ID | Keep a trail. Do not record personal privacy. |
+| Quote or anonymous case | Separate evidence from our interpretation. |
+| Affected requirement ID | For example B4 zoning, B6 scoring, B7 obstacles, B10 shared report. |
+| Disposition | Accept / needs authoritative-source review / do not adopt, with reason and owner. |
 
-收到回复后先查是否推翻既有事实或只是调整优先级。事实冲突回到法规/数据源核验；优先级变化可更新 PRD 和页面顺序。即使访谈在原型之后才到，也可按此表定点修改，不要求数据和技术工作重来。
+On receipt, check whether the reply overturns an established fact or only changes priority. Fact conflicts go back to code/data-source verification. Priority changes may update the PRD and page order. Even if interviews arrive after the prototype, use this table for targeted edits. Data and engineering workstreams do not have to start over.

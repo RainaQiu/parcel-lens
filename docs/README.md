@@ -2,8 +2,6 @@
 
 Read **[LDES v3 preliminary scorecard](LDES_v3_screening_scorecard.md)** first. It describes the default no-scenario screen (`scoreVersion = LDES-v3-screening-scorecard`).
 
-Older files below are kept as history. They still mention 0–100 scores, letter-group zoning guesses, or “no score implemented.” Those descriptions are not the running app.
-
 ## Live product
 
 | File | Role |
@@ -11,18 +9,12 @@ Older files below are kept as history. They still mention 0–100 scores, letter
 | [LDES_v3_screening_scorecard.md](LDES_v3_screening_scorecard.md) | Current default scoring contract |
 | [verification/screening-v3-cases.md](verification/screening-v3-cases.md) | V3 public parcel checks and pending expert review |
 | [verification/deployment-readiness.md](verification/deployment-readiness.md) | API routes and production checks |
-| [plans/codex-use-table.md](plans/codex-use-table.md) | Phase 1 plan: verified §911.02 pathways for five housing uses |
-| [plans/unlock-rated-headline.md](plans/unlock-rated-headline.md) | Follow-up plan: stop UNRATED headline when suitability is already rated |
+| [verification/parcel-chat-cases.md](verification/parcel-chat-cases.md) | Parcel report assistant acceptance cases |
 
-## Historical / research (do not treat as live spec)
+## Research (do not treat as live spec)
 
 | File | Role |
 |---|---|
-| [Development_Ease_Score.md](Development_Ease_Score.md) | LDES v2.1 0–100 + RAG mix; **superseded** by v2.3 parcel screening |
-| [LDES_v2.3_parcel_screen.md](LDES_v2.3_parcel_screen.md) | Historical parcel RAG and regression fixtures |
-| [verification/real-parcel-cases.md](verification/real-parcel-cases.md) | Four historical v2.3 public parcel checks |
-| [LDES_v2.2_RAG.md](LDES_v2.2_RAG.md) | Historical scenario-based RAG rules; superseded for the default flow |
-| [Development_Ease_Scoring_Proposal.md](Development_Ease_Scoring_Proposal.md) | Early methods memo (v0.2); predates the live engine |
 | [Track1_Data_Assessment_and_PRD.md](Track1_Data_Assessment_and_PRD.md) | Track 1 PRD and data inventory |
 | [Track1_Expert_Interview_Guide.md](Track1_Expert_Interview_Guide.md) | Expert interview guide |
 

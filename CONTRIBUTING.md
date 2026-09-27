@@ -1,59 +1,59 @@
-# ParcelLens 协作约定
+# ParcelLens collaboration guide
 
-本约定供三人团队在 hackathon 期间使用。目标是让 `main` 随时可演示，避免互相覆盖改动。流程保持轻量；遇到不确定的 Git 提示，先停下来在团队频道贴出 `git status`，不要猜测着强推。
+These conventions are for a three-person hackathon team. The goal is that `main` stays demoable and people do not overwrite each other. Keep the process light. If a Git prompt is unclear, stop and paste `git status` in the team channel instead of guessing a force-push.
 
-## 1. 谁改什么，先说清楚
+## 1. Say who is changing what
 
-- 开始一项工作前，在团队频道说一句：**任务、准备修改的文件、分支名**。特别是 `src/App.tsx`、`src/lib/types.ts`、`package.json`、`package-lock.json` 和 `vite.config.ts`，同一时间尽量只有一人修改。
-- 一项任务一个分支，名称简短，例如 `feat/scenario-input`、`data/slope-layer`、`docs/prd-update`、`fix/parcel-search`。不要几个人共用一个本地工作目录或分支。
-- `main` 是集成与演示分支。日常改动先开 Pull Request（PR）；紧急直接提交 `main` 只在团队频道明确约定一位集成人后使用，并立即通知其他人拉取。
+- Before starting work, post in the team channel: **task, files you expect to edit, branch name**. Especially for `src/App.tsx`, `src/lib/types.ts`, `package.json`, `package-lock.json`, and `vite.config.ts`, try to have only one person editing at a time.
+- One task, one branch. Keep names short, for example `feat/scenario-input`, `data/slope-layer`, `docs/prd-update`, `fix/parcel-search`. Do not share a local working tree or branch among several people.
+- `main` is the integration and demo branch. Day-to-day changes go through a pull request (PR). Emergency commits to `main` are allowed only after the team channel names one integrator, and everyone else is told to pull immediately.
 
-## 2. 每次开始工作的命令
+## 2. Commands at the start of work
 
-在自己的仓库目录中运行：
+In your own clone:
 
-```powershell
+```bash
 git switch main
 git pull --ff-only origin main
 git switch -c feat/short-task-name
 ```
 
-如果 `git pull --ff-only` 失败，先运行 `git status` 看原因；不要用 `reset --hard` 或强推来“修好”。
+If `git pull --ff-only` fails, run `git status` and read why. Do not “fix” it with `reset --hard` or a force-push.
 
-## 3. 提交和交接
+## 3. Commits and handoff
 
-1. 只提交本任务的文件；提交前运行 `git status` 和 `git diff`，核对没有无关文件、密钥或大数据文件。
-2. 改应用代码时运行 `npm run build` 和 `npm run lint`。改文档时检查相对链接和事实/假设标注。
-3. 用能说明内容的提交信息，例如 `feat: add housing scenario input`、`fix: handle missing zoning response`、`docs: clarify score limitations`。
-4. 推送自己的分支，再在 GitHub 创建指向 `main` 的 PR：
+1. Commit only this task’s files. Before committing, run `git status` and `git diff` and check that there are no unrelated files, secrets, or large data files.
+2. For app changes, run `npm run build` and `npm run lint`. For docs, check relative links and fact/assumption labels.
+3. Use commit messages that describe the change, for example `feat: add housing scenario input`, `fix: handle missing zoning response`, `docs: clarify score limitations`.
+4. Push your branch, then open a GitHub PR targeting `main`:
 
-```powershell
+```bash
 git add -- path/to/changed-file
 git commit -m "feat: describe the change"
 git push -u origin feat/short-task-name
 ```
 
-PR 简述三件事：**改了什么、怎么验证、还有哪些数据或判断未核实**。请一位队友快速看一遍；时间紧时至少在团队频道贴 PR 链接和验证结果，再由集成人合并。合并后大家回到 `main` 并运行 `git pull --ff-only origin main`。不要 `git push --force` 到 `main` 或他人的分支。
+The PR should state three things: **what changed, how it was verified, and which data or judgments remain unverified**. Ask a teammate for a quick look. If time is short, at least post the PR link and verification result in the team channel before the integrator merges. After merge, everyone returns to `main` and runs `git pull --ff-only origin main`. Do not `git push --force` to `main` or to someone else’s branch.
 
-## 4. 数据与产品结论
+## 4. Data and product claims
 
-- 地块事实、法规分类和评分依据写明来源及数据日期；把“已验证”“暂定假设”“未知”区分开。地图能显示某字段，不代表它已经足以支持许可、财务或投资结论。
-- 不提交 API key、token、`.env`、个人资料、未获许可的数据集或大量原始下载文件。需要环境变量时提交说明或不含密钥的示例文件。
-- PRD 在 [`docs/Track1_Data_Assessment_and_PRD.md`](docs/Track1_Data_Assessment_and_PRD.md)。收到专家意见时记录出处和影响的需求，再更新 PRD；不要把单条专家意见写成通用规则。
+- Parcel facts, regulatory classifications, and scoring rationale must name the source and data date. Separate “verified,” “provisional assumption,” and “unknown.” A field appearing on the map does not mean it is enough for a permit, financial, or investment conclusion.
+- Do not commit API keys, tokens, `.env`, personal data, unlicensed datasets, or large raw downloads. For environment variables, commit instructions or a secret-free example file.
+- The PRD is [`docs/Track1_Data_Assessment_and_PRD.md`](docs/Track1_Data_Assessment_and_PRD.md). When expert feedback arrives, record the source and which requirement it affects, then update the PRD. Do not treat one expert comment as a universal rule.
 
-## 5. 当前目录与后续整理
+## 5. Current layout and later cleanup
 
-| 当前路径 | 目前用途 |
+| Path | Current use |
 |---|---|
-| `src/map/` | 地块地图与选择。 |
-| `src/panel/` | 地块资料侧栏。 |
-| `src/lib/` | 数据查询、格式化与类型。 |
-| `docs/` | PRD、访谈和后续数据/架构说明。 |
+| `src/map/` | Parcel map and selection. |
+| `src/panel/` | Parcel-detail sidebar. |
+| `src/lib/` | Data queries, formatting, and types. |
+| `docs/` | PRD, interviews, and later data/architecture notes. |
 
-当前先按既有目录添加功能，不为整理目录而阻塞演示。地图、方案和评分功能成形后，再由团队单独讨论是否改成 `src/features/parcels/`、`src/features/analysis/`、`src/shared/` 及 `docs/product/`、`docs/data/` 等按职责分组的结构。若决定调整，**用一个独立 PR 搬文件并修正引用，避免同时改业务逻辑**；先让其他人的分支合并或约好更新时间。
+Add features in the existing folders first. Do not block a demo to reorganize directories. After the map, scenario, and scoring work has settled, the team can separately discuss a move to `src/features/parcels/`, `src/features/analysis/`, `src/shared/`, and `docs/product/`, `docs/data/`. If that happens, **use a dedicated PR that only moves files and fixes references, without mixing in behavior changes**; wait for other branches to merge or agree on an update window.
 
-## 6. Git 卡住时
+## 6. When Git is stuck
 
-- `git status` 先确认当前分支和未提交改动；把错误消息贴给队友，不要在不理解时删除文件或历史。
-- 推送认证失败时使用 GitHub 的浏览器登录或 Git Credential Manager；**不要把 token 发到 Slack、聊天、PR 或仓库**。
-- 本机若有不可用代理，先检查代理环境设置；不要把个人代理地址写进仓库配置。团队约定不要求每个人采用相同的代理或认证方式。
+- Run `git status` first to confirm the branch and uncommitted changes. Paste the error to a teammate. Do not delete files or history when you do not understand the error.
+- If push authentication fails, use GitHub’s browser login or Git Credential Manager. **Do not put a token in Slack, chat, a PR, or the repo.**
+- If a local proxy is unusable, inspect proxy environment settings. Do not write a personal proxy address into repo config. The team does not require everyone to use the same proxy or auth method.

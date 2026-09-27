@@ -144,4 +144,4 @@ The report separates mapped observations, next checks, evidence gaps, and projec
 
 Tests cover ordered precedence, all five use rows, split/point zoning, confirmed zero versus failed source, boundary fragments, category-specific FEMA treatment, PLI status, the `0052P00130000000` EMI/2.208% slope case, slope and landslide boundaries, historic tolerance, and the four earlier real-parcel geospatial observations under explicitly completed other-source assumptions. See [v3 review ledger](verification/screening-v3-cases.md). The small set exposes counterexamples but does not establish predictive accuracy. A 12–20-case review by a local planning or development practitioner remains pending.
 
-For historical v2.3 behavior and fixtures, see [LDES v2.3](LDES_v2.3_parcel_screen.md).
+Historical v2.3 scoring remains in `src/lib/score.ts` and `src/lib/ldes/` fixtures for regression only.

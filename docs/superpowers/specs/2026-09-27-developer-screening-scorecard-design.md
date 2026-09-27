@@ -1,90 +1,90 @@
-# Parcel Lens v3：面向开发商的地块尽调初筛卡
+# Parcel Lens v3: developer due-diligence screening scorecard
 
-日期：2026-09-27
-状态：设计稿，待 Raina 审核；尚未实施。
+Date: 2026-09-27  
+Status: Design spec for the live LDES v3 scorecard.
 
-## 1. 目标和范围
+## 1. Goal and scope
 
-首页帮助住宅开发商回答一个早期决策问题：**这块地是否值得投入下一轮尽调，先核实什么？** 用户默认只输入地址或 Parcel ID；不要求先选住宅类型、套数或高级筛选项。系统自动检查现有的五类住宅用途路径及已接入的地图和记录来源。比较页按相同维度对照 2–4 个地块。
+The home screen helps a residential developer answer an early decision: **is this parcel worth the next round of due diligence, and what should be verified first?** By default the user enters only an address or Parcel ID. They do not have to choose a housing type, unit count, or advanced filters. The system automatically checks the five existing residential use paths and the connected map and record sources. The compare page uses the same dimensions for 2–4 parcels.
 
-默认页提供一枚综合 `screeningRag = GREEN | AMBER | RED | UNRATED`，满足 Track 1 的评分输出；页面标题为 **Development Ease Score — Preliminary zoning & site screen**。它概括已接入证据下的住宅用途路径和下一轮核查负担，**不**表示某个未定义项目的许可、净可建面积、工期、收购可能性或财务回报。项目整体可行性另标 `NOT_ASSESSED`，也不展示未经校准的 0–100 分。
+The default view shows one combined `screeningRag = GREEN | AMBER | RED | UNRATED`, which satisfies Track 1’s scoring output. The page title is **Development Ease Score — Preliminary zoning & site screen**. It summarizes listed residential use paths and next-round review burden under connected evidence. It does **not** mean permit approval, net buildable area, schedule, acquisition likelihood, or financial return for an undefined project. Overall project feasibility stays `NOT_ASSESSED`. An uncalibrated 0–100 score is not shown.
 
-若日后用户在已入围地块上提供住宅用途、规模和拟建位置，才进入单独的项目级判断；该第二阶段不在本次 v3 实施范围。现有 LLM 只解释确定性结果，不决定分级或补写缺失事实。
+A separate project-level judgment is in scope only later, if the user supplies housing use, scale, and proposed location on a shortlisted parcel. That second stage is outside this v3 implementation. The existing LLM only explains the deterministic result. It does not set the grade or invent missing facts.
 
-## 2. 为什么更改 v2.3
+## 2. Why change v2.3
 
-- `5000 FORBES AVE` 在评估数据中对应四个 Parcel ID。`0052P00130000000` 的分区是 EMI；五条住宅用途路径分别为一个 `P`、一个 `A`、三个 `NOT_PERMITTED`。2.208% 的地块与 25%+ 坡地图层重叠低于当前 10% 的定向复核阈值，因此不单独把结果升为 Amber；地图事实和项目影响未知仍保留。
-- v2.3 将任意有效非零坡地、滑坡或采空区重叠判 Amber，重叠超过 50% 判 Red；分区、环境、历史状态再合成最严颜色。50% 是代码阈值，并非已验证的开发商决策或市府审批分界。地块重叠比例也没有说明拟建建筑或土地扰动是否位于重叠区域。
-- 大学已建成的建筑不能作为“现在可按同一途径新建住宅”的正确标签。EMI 地块还涉及 Institutional Master Plan；现状用途、项目用途和建设时期不同。这个案例验证了**总颜色的解释会误导**，并不能单凭建成事实证明风险图层错误。
-- 分区 Green 目前只表示五条路径中至少一条是 `P`，并不代表开发商计划的住宅类型是 by-right。地块所有者或评估用途也不能证明地块正在出售、可以取得或具有财务可行性。
+- `5000 FORBES AVE` maps to four Parcel IDs in assessment data. `0052P00130000000` is zoned EMI. The five residential use paths are one `P`, one `A`, and three `NOT_PERMITTED`. A 2.208% parcel overlap with the 25%+ slope layer is below the current 10% targeted-review threshold, so that hit alone does not raise the result to Amber. The mapped fact and unknown project impact remain.
+- v2.3 treated any valid non-zero slope, landslide, or undermined overlap as Amber, and overlap above 50% as Red, then combined zoning, environment, and historic into the most severe color. 50% is a code threshold, not a validated developer or city-approval boundary. Parcel overlap share also does not say whether a proposed building or land disturbance sits in the overlap.
+- An already-built campus building is not a correct label for “new housing can now be built by the same path.” EMI parcels also involve an Institutional Master Plan; existing use, project use, and construction era differ. This case shows that **the headline color can mislead**. Built facts alone do not prove the hazard layers are wrong.
+- Zoning Green currently means at least one of the five paths is `P`. It does not mean the developer’s intended housing type is by-right. Owner or assessment use also does not prove the parcel is for sale, obtainable, or financially feasible.
 
-相关依据：[Pittsburgh 审批流程](https://www.pittsburghpa.gov/Business-Development/City-Planning/Zoning/Planning-Applications-and-Processes)将影响自然 25%+ 坡度的**拟建开发**列入 Planning Commission Review；[环境叠加规定](https://ecode360.com/45474965)允许在调查、专业设计和审查条件下处理部分场地约束；[EMI 分区规定](https://ecode360.com/45474542)说明机构用途与总体规划路径。[英国地块评估指南](https://www.gov.uk/guidance/assessing-sites-for-local-plans-stage-2)将适宜性、可取得性和可实施性分开，且要求考察缓解措施；只借鉴其方法结构，不把它当作 Pittsburgh 法规。
+Sources: [Pittsburgh review process](https://www.pittsburghpa.gov/Business-Development/City-Planning/Zoning/Planning-Applications-and-Processes) lists **proposed development** that affects natural 25%+ slopes under Planning Commission Review; [environmental overlay provisions](https://ecode360.com/45474965) allow some site constraints to be addressed with survey, professional design, and review; [EMI district rules](https://ecode360.com/45474542) describe institutional use and master-plan paths. The [England site-assessment guidance](https://www.gov.uk/guidance/assessing-sites-for-local-plans-stage-2) separates suitability, availability, and achievability and asks about mitigation. Borrow the method structure only; it is not Pittsburgh code.
 
-## 3. 方案选择
+## 3. Option choice
 
-| 方案 | 好处 | 未解决的问题 |
+| Option | Benefit | What it leaves unsolved |
 |---|---|---|
-| A. 调整现有重叠百分比阈值 | 改动少 | 仍把整块地的地图重叠误当成拟建范围的影响；新阈值依然缺少依据。 |
-| **B. 分维度初筛卡 + 有范围的综合 RAG（本设计）** | 满足比赛评分要求，同时保留用途路径、证据和行动建议；Amber 明确表示额外核查，而非“难建成” | 粗粒度 RAG 不能代表两个 Amber 地块的工程成本相同，也不能作为投资排序。 |
-| C. 直接做项目级加权分 | 能比较一个明确项目的多个候选地 | 需要用途、规模、位置、尺寸规则、地块控制和经济假设；当前数据不足。 |
+| A. Tune existing overlap-percentage thresholds | Small change | Still treats whole-parcel map overlap as proposed-footprint impact; new thresholds still lack evidence. |
+| **B. Dimensional screening card + scoped combined RAG (this design)** | Meets the competition scoring requirement while keeping use paths, evidence, and actions. Amber means extra review, not “hard to build.” | A coarse RAG cannot mean two Amber parcels have the same engineering cost, and it cannot rank investments. |
+| C. Jump to a project-level weighted score | Can compare several candidates for one defined project | Needs use, scale, location, dimensional rules, site control, and economic assumptions. Data is insufficient now. |
 
-选择 B。保留 v2.3 的来源、空间叠加、住房用途矩阵和可追溯记录；重新定义综合 RAG 的范围及合成方式。它是初筛等级，不是已验证的项目级预测或自动淘汰决定。
+Choose B. Keep v2.3 sources, spatial overlays, the housing-use matrix, and provenance. Redefine the combined RAG’s scope and combination. It is a screening grade, not a validated project-level prediction or an automatic kill decision.
 
-## 4. 默认输出契约
+## 4. Default output contract
 
-每个 Parcel ID 生成一个版本化 `screeningScorecard`，包括：
+Each Parcel ID produces a versioned `screeningScorecard` that includes:
 
-| 字段 | 允许值及含义 |
+| Field | Allowed values and meaning |
 |---|---|
-| `housingPathways[]` | 现有五类用途逐行保留 `P / A / S / C / P_OR_S / NOT_PERMITTED / UNKNOWN`、分区、规则版本和来源。 |
-| `pathwaySummary` | `BY_RIGHT_PATH_IDENTIFIED`：至少一行 `P`；`REVIEW_PATH_ONLY`：无 `P`、至少一行 `A/S/C/P_OR_S`；`NO_LISTED_PATH`：五行均未列入；`UNKNOWN`：规则、分区或关联证据不足。只描述**列入的路径**，不评价整个地块。 |
-| `mappedConstraints[]` | 每一来源分别存 `DETECTED / NOT_DETECTED / UNKNOWN`、类别、实测重叠面积和比例、边界不确定性、来源与时间。`DETECTED` 时 `projectImpact=UNKNOWN`；未命中时为 `NOT_APPLICABLE`。地图命中只表示核查线索。 |
-| `reviewTasks[]` | 从核实的用途路径、地图命中、现状记录和证据缺口产生可执行的下一步；每项有 `trigger`、`whyItMatters`、`whoToConsult`、`sourceRefs` 和 `scoreEffect=triggered/routine/gap`，去除同一根因的重复任务。地图事实依照版本化材料性阈值成为 `triggered` 或 `routine`；所有地块都会有的常规项目尽调为 `routine`。 |
-| `evidenceGaps[]` | 查询失败、地块边界/地址关联不确定、分区跨界、法规表缺项等，并注明受影响的维度。其他成功取得的事实继续显示。 |
-| `unassessed[]` | 默认至少列出项目尺寸与拟建位置、土地控制/可取得性、场地工程成本、财务可行性；这些不参加已核维度计算。 |
-| `screeningRag` | `GREEN / AMBER / RED / UNRATED`。只对本次已定义的住宅用途及地图/记录初筛给出综合等级，按第 5 节规则产生；与说明、任务、证据缺口共同展示。 |
-| `projectFeasibility` | 默认固定 `NOT_ASSESSED`；只有未来项目级规则才可给其他值。 |
-| `scoreVersion` | 新版本 `LDES-v3-screening-scorecard`，与 v2.3 明确区分。 |
+| `housingPathways[]` | Keep the five uses row by row with `P / A / S / C / P_OR_S / NOT_PERMITTED / UNKNOWN`, district, rule version, and source. |
+| `pathwaySummary` | `BY_RIGHT_PATH_IDENTIFIED`: at least one `P` row. `REVIEW_PATH_ONLY`: no `P`, at least one `A/S/C/P_OR_S`. `NO_LISTED_PATH`: none of the five rows is listed. `UNKNOWN`: insufficient rule, zoning, or join evidence. Describes **listed paths** only, not the whole parcel. |
+| `mappedConstraints[]` | Per source: `DETECTED / NOT_DETECTED / UNKNOWN`, category, measured overlap area and share, boundary uncertainty, source, and time. When `DETECTED`, `projectImpact=UNKNOWN`; when not hit, `NOT_APPLICABLE`. A map hit is a review lead only. |
+| `reviewTasks[]` | Actionable next steps from verified use paths, map hits, condition records, and evidence gaps. Each has `trigger`, `whyItMatters`, `whoToConsult`, `sourceRefs`, and `scoreEffect=triggered/routine/gap`. Deduplicate tasks with the same root cause. Map facts become `triggered` or `routine` under versioned materiality thresholds. Ordinary project due diligence that applies to every parcel is `routine`. |
+| `evidenceGaps[]` | Failed queries, uncertain parcel boundary/address joins, split zoning, missing code-table cells, and which dimensions they affect. Other successfully retrieved facts still display. |
+| `unassessed[]` | Default list includes at least project dimensions and proposed location, land control/availability, site-engineering cost, and financial feasibility. These do not enter the rated dimensions. |
+| `screeningRag` | `GREEN / AMBER / RED / UNRATED`. Combined grade for this defined residential-use and map/record screen, produced by section 5, shown with copy, tasks, and gaps. |
+| `projectFeasibility` | Fixed `NOT_ASSESSED` by default. Other values require future project-level rules. |
+| `scoreVersion` | New version `LDES-v3-screening-scorecard`, distinct from v2.3. |
 
-所有输出绑定规范化 Parcel ID；地址只用于找候选，不参与最终地块身份判断。同一地址的多个候选必须由用户明确选中。每项事实保留来源 URL、来源日期（若有）、获取日期、关联方式和计算规则版本。
+All output is bound to a canonical Parcel ID. Address is only for finding candidates, not for final identity. Multiple candidates at the same address must be chosen explicitly by the user. Every fact keeps source URL, source date if known, retrieval date, join method, and calculation rule version.
 
-## 5. 确定性规则
+## 5. Deterministic rules
 
-1. **证据门槛。** 无唯一 Parcel ID、可靠边界或 Pittsburgh 管辖核验时，不能形成可用的地块初筛卡；已取到的事实可展示，依赖该证据的字段为 `UNKNOWN`。单个图层失败只使该图层及依赖它的任务未知，不抹去其他已核事实。
-2. **用途路径。** 沿用已核 §911.02 五行用途表。跨 base district、未处理 overlay、单元格未核实或几何争议时，`pathwaySummary=UNKNOWN` 并说明原因。`BY_RIGHT_PATH_IDENTIFIED` 仍需核尺寸、其他适用规则和具体项目，界面不得写“获批”或“容易建成”。`NO_LISTED_PATH` 只表示当前检查的五类用途在 base-district 表中均未列入，不宣称土地不可开发。
-3. **地图线索。** 保留坡地、滑坡、采空区、FEMA、历史区等的原始类别和重叠数据，并使用版本化材料性规则区分常规事实、Amber 定向复核和 Red 重大约束。坡地与滑坡采用 10%/50% 分界；采空区任何有效命中为 Amber；历史区/点同时低于 1% 和 100 sq ft 时只作常规事实；FEMA 按 0.2%、SFHA、Floodway 分别判定。没有拟建位置时，`projectImpact=UNKNOWN`；不得把图层命中写成许可否决、已确认工程危险或必然超支。
-4. **现状和控制。** 评估用途、现有建筑、所有者类别及 PLI 记录作为背景或调查线索。不得从“大学所有”“已建成”推断土地可取得、现在的住宅项目能批准或建筑安全。活动中的 condemned 记录必须醒目提示官方核实；已结案的违规记录仅为背景，不单独使等级转 Amber。
-5. **综合初筛 RAG。** 依下列顺序判定，首个满足的条件决定等级；成功取得的其他事实和全部缺项仍显示：
-   - `UNRATED`：Parcel ID/边界/市界无法核实，或分区路径未知（包括跨分区未核），因此无法进行可信的住宅初筛。
-   - `RED`：五类住宅用途的完整已核表中**没有一条列入的路径**，或达到版本化重大地图约束：坡地/滑坡 ≥50%、SFHA ≥50%、任何有效 Floodway。文案必须说明具体根因，不能写“该地不可建”。其他来源失败时仍列出其缺口。
-   - `UNRATED`：至少有一条住宅用途路径，但坡地、滑坡、采空、FEMA 或历史/PLI 等必需初筛来源失败，导致审查负担无法可靠分级。
-   - `AMBER`：没有 by-right 的住宅路径但存在 `A/S/C/P_OR_S`，或地图命中达到对应定向复核阈值，或活动历史/现状事项产生专项任务。Amber 仅表示**进入下一轮前需定向核查**；地图重叠不等于拟建位置受影响，也不等于审批会失败。
-   - `GREEN`：至少一条用途路径为 `P`，必需来源成功，当前已查范围没有专项核查标记。Green 仅表示**已核初筛范围内未发现额外任务**；尺寸、土地控制、成本和财务仍未评估。
-6. **不使用分数补偿。** 采用第 3、5 条列明的版本化阈值，不进行加权平均；任何有利维度都不能抵消已核的无路径结论、必需来源缺失或重大约束。原始面积与比例始终显示，阈值不替代项目位置、测量或专业判断。
+1. **Evidence gates.** Without a unique Parcel ID, a reliable boundary, or Pittsburgh jurisdiction, the parcel cannot produce a usable screening card. Retrieved facts may still display; fields that depend on the missing evidence are `UNKNOWN`. A single layer failure makes that layer and its dependent tasks unknown. It does not erase other verified facts.
+2. **Use paths.** Keep the verified five-row §911.02 table. Split base districts, untreated overlays, unverified cells, or geometry disputes make `pathwaySummary=UNKNOWN` with a reason. `BY_RIGHT_PATH_IDENTIFIED` still needs dimensions, other applicable rules, and a specific project. The UI must not say “approved” or “easy to build.” `NO_LISTED_PATH` means only that the five checked uses are not listed in the base-district table. It does not claim the land is undevelopable.
+3. **Mapped leads.** Keep original categories and overlap data for slope, landslide, undermined land, FEMA, historic areas, and similar layers. Use versioned materiality rules to separate routine facts, Amber targeted review, and Red major constraints. Slope and landslide use 10%/50% cutoffs. Any valid undermined hit is Amber. Historic district/site hits below both 1% and 100 sq ft stay routine facts. FEMA is judged separately for 0.2%, SFHA, and Floodway. Without a proposed location, `projectImpact=UNKNOWN`. Do not write a layer hit as a permit denial, confirmed engineering hazard, or certain cost overrun.
+4. **Condition and control.** Assessment use, existing buildings, owner class, and PLI records are background or investigation leads. Do not infer from “university-owned” or “already built” that land is available, that a present-day housing project would be approved, or that the building is safe. Active condemned records must prominently prompt official verification. Closed violations are background only and do not by themselves turn the grade Amber.
+5. **Combined screening RAG.** Evaluate in this order. The first matching condition sets the grade. Other successfully retrieved facts and all gaps still display:
+   - `UNRATED`: Parcel ID / boundary / city limits cannot be verified, or the zoning path is unknown (including unverified split zoning), so a credible residential screen cannot run.
+   - `RED`: The complete verified table for the five residential uses has **no listed path**, or a versioned major mapped constraint is met: slope/landslide ≥50%, SFHA ≥50%, or any valid Floodway. Copy must name the root cause and must not say “this land cannot be built.” Failed other sources still appear as gaps.
+   - `UNRATED`: At least one residential use path exists, but a required screening source (slope, landslide, undermined, FEMA, or historic/PLI) failed, so review burden cannot be graded reliably.
+   - `AMBER`: No by-right residential path but an `A/S/C/P_OR_S` path exists, or a map hit meets its targeted-review threshold, or an active historic/condition item creates a dedicated task. Amber means only **targeted review before the next round**. Map overlap does not mean the proposed location is affected, and it does not mean approval will fail.
+   - `GREEN`: At least one use path is `P`, required sources succeeded, and the checked scope has no dedicated review flags. Green means only **no extra tasks were found in the verified screening scope**. Dimensions, land control, cost, and finances remain unassessed.
+6. **No score compensation.** Use the versioned thresholds in items 3 and 5. Do not take a weighted average. No favorable dimension can offset a verified no-path result, a missing required source, or a major constraint. Raw area and share always display. Thresholds do not replace project location, survey, or professional judgment.
 
-## 6. 用户界面与解释文案
+## 6. UI and explanation copy
 
-首页预览和独立报告都先给四个简短问题的答案：**已核的住宅路径、发现的地图/记录线索、下一步尽调任务、还不能判断什么。** 报告可展开五行用途矩阵、原始百分比、来源和版本。地图图层默认可见，用户不需要先配置筛选项。
+Home preview and the standalone report both answer four short questions first: **verified residential paths, mapped/record leads found, next due-diligence tasks, and what still cannot be judged.** The report can expand the five-row use matrix, raw percentages, sources, and versions. Map layers are visible by default. The user does not configure filters first.
 
-顶部显示 **Development Ease Score — Preliminary**、综合 RAG 及一句固定释义：Green“已核范围无额外核查任务”，Amber“需要定向核查”，Red“五类住宅用途无已列入路径”，Unrated“关键证据不足”。旁边持续显示“项目整体可行性未评估”。维度标签使用明确的词语，如“已有列入的住宅路径”“需额外用途审查”“坡地图层命中”“资料不可用”。颜色仅辅助阅读；每个颜色必须同时有文字。比较页可并列展示综合 RAG，但不凭该等级自动排序或声称两个同色地块的工程负担相同。
+The top shows **Development Ease Score — Preliminary**, the combined RAG, and one fixed gloss: Green “no extra review tasks in the verified scope,” Amber “targeted review needed,” Red “no listed path among the five residential uses,” Unrated “critical evidence missing.” Next to it, keep “overall project feasibility not assessed.” Dimension labels use plain phrases such as “listed residential path exists,” “extra use review required,” “slope-layer hit,” “source unavailable.” Color is only an aid. Every color must have text. The compare page may show combined RAG side by side, but it must not auto-rank by that grade or claim two same-color parcels have the same engineering burden.
 
-LLM 可以把 `reviewTasks` 和核实事实写成通俗摘要，但不得新增法律结论、数值、风险级别、费用或审批概率；模型失败时保留确定性摘要。摘要首句不能把地图命中描述为“不可建”或把 `P` 描述为已许可。
+The LLM may turn `reviewTasks` and verified facts into a plain-language summary. It must not add legal conclusions, numbers, risk levels, costs, or approval probabilities. On model failure, keep the deterministic summary. The first sentence must not describe a map hit as “cannot be built” or a `P` as already permitted.
 
-## 7. 5000 Forbes Ave 验收示例
+## 7. 5000 Forbes Ave acceptance example
 
-搜索 `5000 Forbes Ave` 时，先列出四个候选 Parcel ID。对 `0052P00130000000`，默认卡应展示：
+A search for `5000 Forbes Ave` first lists four candidate Parcel IDs. For `0052P00130000000`, the default card should show:
 
-- 分区 `EMI`；五行中单栋住宅 `P`、多单元住宅 `A`、其余三行 `NOT_PERMITTED`。用途路径摘要为 `BY_RIGHT_PATH_IDENTIFIED`，并指出该结论仅对列入为 `P` 的用途成立。
-- 25%+ 坡地图层与地块约 2.208% 重叠。场地线索为 `DETECTED`；拟建范围是否受影响为 `UNKNOWN`。任务是核拟建位置与地形、按需找规划部门和测绘/岩土专业人员。
-- 评估记录的大学用途只是现状背景；土地可取得性和住宅项目经济性均为 `NOT_ASSESSED`。
-- 综合初筛结果为 **GREEN · 当前核查范围内未发现定向复核任务**；旁边说明只有约 2.208% 的地块被该坡地图层覆盖，拟建位置是否受影响未知。它不表示“CMU 不可能建成”或“整块地没有坡地事实”。项目整体可行性仍为 `NOT_ASSESSED`，也不因校园已建成而把坡地图层改写为“无风险”。
+- District `EMI`; among the five rows, detached housing `P`, multi-unit housing `A`, and the other three `NOT_PERMITTED`. Pathway summary is `BY_RIGHT_PATH_IDENTIFIED`, with a note that this holds only for uses listed as `P`.
+- About 2.208% overlap between the 25%+ slope layer and the parcel. Site lead is `DETECTED`; whether the proposed footprint is affected is `UNKNOWN`. The task is to check proposed location against terrain and, as needed, consult planning and survey/geotechnical professionals.
+- University use in the assessment record is existing-use background only. Land availability and housing-project economics are `NOT_ASSESSED`.
+- Combined screening result is **GREEN · no targeted-review task in the current checked scope**, with a note that only about 2.208% of the parcel is covered by that slope layer and that proposed-location impact is unknown. It does not mean “CMU could not have been built” or “the parcel has no slope fact.” Overall project feasibility stays `NOT_ASSESSED`. The slope layer is not rewritten as “no risk” because the campus is already built.
 
-另外三个同地址 PIN 使用各自边界和来源独立计算，不复用这个地块的结论。
+The other three PINs at the same address are calculated independently from their own boundaries and sources. They do not reuse this parcel’s conclusion.
 
-## 8. 实施边界和验证
+## 8. Implementation boundary and validation
 
-实现时将现有评分拆成四个纯逻辑单元：`pathwaySummary`、`mappedConstraintObservations`、`reviewTaskDerivation`、`screeningRag`；渲染层消费统一卡片契约。沿用现有 GIS、CKAN、规则表与 LLM 服务。v2.3 的 `easeScore` 保留为历史结果标识，不再冒充 v3 的综合初筛 RAG；数据/规则变更必须同时更新版本和回归样例。旧 v2.2 明确方案 fixture 继续作为历史回归，不与 v3 默认结论混算。
+Split the existing scoring into four pure units: `pathwaySummary`, `mappedConstraintObservations`, `reviewTaskDerivation`, and `screeningRag`. The render layer consumes one card contract. Keep the existing GIS, CKAN, rule table, and LLM services. Keep v2.3 `easeScore` as a historical result identifier. It must not pose as the v3 combined screening RAG. Data or rule changes must update the version and regression fixtures together. Old v2.2 explicit-scenario fixtures stay as historical regression and are not mixed into the default v3 conclusion.
 
-最少覆盖以下验收：同地址多 PIN；2.208% 坡地命中保留为地图事实且解释“拟建影响未知”；10% 起为 Amber、50% 起为 Red；真实零重叠与细条边界；跨分区；所有五类用途均未列入；一个必需来源失败但其他维度继续显示；FEMA floodway 与普通洪泛类别区分；活动/已关闭的 PLI 记录区分；同一 PIN 与同一规则/来源版本重复计算一致。比较页不得把不同规则或证据范围的卡片当作同级排名。
+Minimum acceptance coverage: multiple PINs at one address; a 2.208% slope hit kept as a mapped fact with “proposed impact unknown”; Amber from 10% and Red from 50%; true zero overlap versus a sliver; split zoning; all five uses unlisted; one required source failed while other dimensions still display; FEMA floodway versus ordinary flood classes; active versus closed PLI records; the same PIN recomputed with the same rule/source versions is stable. The compare page must not treat cards with different rules or evidence scope as the same rank.
 
-建立约 12–20 个不同情形的真实地块审阅集，请至少一名本地规划或开发实践者逐项判断“是否值得下一步尽调、首先核实什么、哪句会误导”。纳入已建、未建、审批中和因障碍延期的案例，避免只用成功项目校准。重点检查错误排除、错误许可暗示、漏报关键任务和数据缺失被误当安全。该样本用于发现反例与改规则，不能宣称统计预测准确率；在没有足够项目级案例和本地校准前，不发布 0–100 分、审批概率、费用或回报估计。
+Build a review set of about 12–20 genuinely varied real parcels. Ask at least one local planning or development practitioner, case by case, whether the parcel is worth next-round diligence, what to verify first, and which sentence would mislead. Include built, unbuilt, in-approval, and delayed-by-obstacle cases. Do not calibrate only on successful projects. Watch for false exclusion, false permission implication, missed critical tasks, and missing data treated as safety. The sample is for finding counterexamples and changing rules. It does not support a statistical predictive-accuracy claim. Do not publish 0–100 scores, approval probabilities, cost, or return estimates without enough project-level cases and local calibration.

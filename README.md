@@ -28,7 +28,6 @@ The headline is a scoped residential zoning and site screen. RED means none of t
 Start here: **[docs/README.md](docs/README.md)** (index), **[LDES v3 preliminary scorecard](docs/LDES_v3_screening_scorecard.md)** (live spec), and the [PRD](docs/Track1_Data_Assessment_and_PRD.md).
 
 - [Team collaboration guide](CONTRIBUTING.md)
-- [LDES v2.1 rubric (historical)](docs/Development_Ease_Score.md)
 - [Track 1 PRD and data assessment](docs/Track1_Data_Assessment_and_PRD.md)
 - [Housing expert interview guide](docs/Track1_Expert_Interview_Guide.md)
 
