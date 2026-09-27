@@ -36,6 +36,7 @@ describe('shared scorecard presentation', () => {
     const result = comparisonRows([amber, green])
     expect(result.reports.map((item) => item.pin)).toEqual(['A', 'B'])
     expect(result.warning).toContain('coverage')
+    expect(result.rows.map((row) => row.label)).not.toContain('Data retrieved')
     expect(comparisonRows([amber, report('B', { ...card('GREEN'), ruleVersions: ['v2'] })]).warning).toContain('rule')
   })
 })

@@ -86,6 +86,34 @@ export function isClipFact(value: OverlapFact | { failed: true } | undefined): v
   return Boolean(value) && !('failed' in (value as { failed?: true }))
 }
 
+const layerUpdatedAtCache = new Map<string, Promise<string | null>>()
+
+export function clearLayerUpdatedAtCache() {
+  layerUpdatedAtCache.clear()
+}
+
+export async function fetchLayerUpdatedAt(metadataUrl: string): Promise<string | null> {
+  let pending = layerUpdatedAtCache.get(metadataUrl)
+  if (!pending) {
+    pending = (async () => {
+      try {
+        const res = await fetch(metadataUrl)
+        if (!res.ok) return null
+        const data = (await res.json()) as {
+          editingInfo?: { dataLastEditDate?: number; lastEditDate?: number }
+        }
+        const ms = data.editingInfo?.dataLastEditDate ?? data.editingInfo?.lastEditDate
+        return typeof ms === 'number' && Number.isFinite(ms) ? new Date(ms).toISOString() : null
+      } catch {
+        layerUpdatedAtCache.delete(metadataUrl)
+        return null
+      }
+    })()
+    layerUpdatedAtCache.set(metadataUrl, pending)
+  }
+  return pending
+}
+
 async function queryJson(url: string, signal?: AbortSignal): Promise<GisFeatureCollection> {
   const question = url.indexOf('?')
   const path = question === -1 ? url : url.slice(0, question)

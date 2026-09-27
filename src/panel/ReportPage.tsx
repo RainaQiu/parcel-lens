@@ -4,8 +4,8 @@ import { loadParcelByPin } from '../lib/parcelReport'
 import { makeParcelReport, type ParcelReport } from '../lib/reportView'
 import { buildExplanationInput } from '../lib/screening/explanationInput'
 import { screeningPresentation } from '../lib/screening/presentation'
-import type { SourceObservation } from '../lib/types'
 import { ParcelChat } from './ParcelChat'
+import { SourceObservationsList } from './SourceObservations'
 
 export type Explanation = {
   summary: string
@@ -129,7 +129,7 @@ export function ReportPage({ pin, cached, saved, onBack, onAdd, onLoaded }: Prop
             <section className="report-section" id="unknowns"><div className="section-heading"><span>03</span><div><h2>What is still unknown?</h2><p>Missing source evidence and project questions are shown separately.</p></div></div><h3>Evidence gaps</h3>{scorecard.evidenceGaps.length ? <ul className="unknown-list">{scorecard.evidenceGaps.map((gap) => <li key={gap.id}>{gap.reason}</li>)}</ul> : <p>No required source gap was identified.</p>}<h3>Project questions not assessed</h3><ul className="unknown-list">{scorecard.unassessed.map((item) => <li key={item}>{item}</li>)}</ul></section>
 
             <section className="report-section" id="evidence"><div className="section-heading"><span>04</span><div><h2>Evidence and property records</h2><p>Inspect original sources, retrieval state, and assessor fields.</p></div></div>
-              <details className="report-details"><summary>Source observations</summary><div className="source-list">{Object.entries(selected.ldes?.sources ?? {}).map(([key, value]) => { const source = value as SourceObservation<unknown>; return <div key={key}><strong>{key}</strong><span>{source.status}{source.nAReason ? ` · ${source.nAReason}` : ''}</span><small>Source updated: {source.sourceUpdatedAt ?? 'not provided'} · Retrieved: {source.retrievedAt ?? 'unknown'} · Join: {source.joinMethod}</small><a href={source.sourceUrl} target="_blank" rel="noreferrer">Original source ↗</a></div> })}</div></details>
+              <details className="report-details"><summary>Source observations</summary><SourceObservationsList sources={selected.ldes?.sources} /></details>
               <details className="report-details"><summary>Parcel and assessor details</summary><dl className="property-grid"><div><dt>Parcel ID</dt><dd>{report.pin}</dd></div><div><dt>Lot area</dt><dd>{formatNumber(selected.assessment?.LOTAREA, 0)} sq ft</dd></div><div><dt>Municipality</dt><dd>{selected.assessment?.MUNIDESC ?? 'Unknown'}</dd></div><div><dt>Zoning description</dt><dd>{selected.zoning?.description ?? 'Unknown'}</dd></div><div><dt>Owner type</dt><dd>{selected.assessment?.OWNERDESC ?? 'Unknown'}</dd></div><div><dt>Mailing address</dt><dd>{mailingAddress(selected.assessment)}</dd></div><div><dt>Last sale price</dt><dd>{formatMoney(selected.assessment?.SALEPRICE)}</dd></div><div><dt>Last sale date</dt><dd>{formatDate(selected.assessment?.SALEDATE)}</dd></div><div><dt>Certified tax year</dt><dd>{formatYear(selected.assessment?.TAXYEAR)}</dd></div><div><dt>Assessment file as of</dt><dd>{formatDate(selected.assessment?.ASOFDATE)}</dd></div><div><dt>Boundary last modified</dt><dd>{formatDate(selected.feature.properties.MODIFIEDON)}</dd></div><div><dt>Zoning layer last updated</dt><dd>{formatDate(selected.zoning?.updatedAt)}</dd></div></dl></details>
             </section>
           </div>

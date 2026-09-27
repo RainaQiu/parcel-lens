@@ -821,10 +821,14 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .report-details { margin-top: 10px; }
 .report-details summary { padding: 16px 20px; cursor: pointer; font-weight: 700; }
 .report-details[open] summary { border-bottom: 1px solid var(--line); }
-.source-list { padding: 8px 20px; }
-.source-list > div { display: flex; flex-wrap: wrap; gap: 5px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
-.source-list span, .source-list small { color: var(--muted); }
-.source-list small { width: 100%; }
+.source-list { padding: 8px 20px 16px; }
+.source-row { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.source-row:last-child { border-bottom: 0; }
+.source-row h3 { margin: 0; font-size: 15px; }
+.source-fact { margin: 6px 0 0; color: var(--ink); }
+.source-status { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.source-meta { display: flex; flex-wrap: wrap; gap: 5px 12px; margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.source-meta a { color: var(--accent); }
 .property-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; margin: 0; }
 .property-grid dt { font-size: 11px; text-transform: uppercase; color: var(--muted); }
 .property-grid dd { margin: 3px 0 0; overflow-wrap: anywhere; }
