@@ -5,6 +5,7 @@ import { makeParcelReport, type ParcelReport } from '../lib/reportView'
 import { buildExplanationInput } from '../lib/screening/explanationInput'
 import { screeningPresentation } from '../lib/screening/presentation'
 import type { SourceObservation } from '../lib/types'
+import { ParcelChat } from './ParcelChat'
 
 export type Explanation = {
   summary: string
@@ -117,7 +118,7 @@ export function ReportPage({ pin, cached, saved, onBack, onAdd, onLoaded }: Prop
               <details className="report-details"><summary>Parcel and assessor details</summary><dl className="property-grid"><div><dt>Parcel ID</dt><dd>{report.pin}</dd></div><div><dt>Lot area</dt><dd>{formatNumber(selected.assessment?.LOTAREA, 0)} sq ft</dd></div><div><dt>Municipality</dt><dd>{selected.assessment?.MUNIDESC ?? 'Unknown'}</dd></div><div><dt>Zoning description</dt><dd>{selected.zoning?.description ?? 'Unknown'}</dd></div><div><dt>Owner type</dt><dd>{selected.assessment?.OWNERDESC ?? 'Unknown'}</dd></div><div><dt>Mailing address</dt><dd>{mailingAddress(selected.assessment)}</dd></div><div><dt>Last sale price</dt><dd>{formatMoney(selected.assessment?.SALEPRICE)}</dd></div><div><dt>Last sale date</dt><dd>{formatDate(selected.assessment?.SALEDATE)}</dd></div><div><dt>Certified tax year</dt><dd>{formatYear(selected.assessment?.TAXYEAR)}</dd></div><div><dt>Assessment file as of</dt><dd>{formatDate(selected.assessment?.ASOFDATE)}</dd></div><div><dt>Boundary last modified</dt><dd>{formatDate(selected.feature.properties.MODIFIEDON)}</dd></div><div><dt>Zoning layer last updated</dt><dd>{formatDate(selected.zoning?.updatedAt)}</dd></div></dl></details>
             </section>
           </div>
-          <aside className="report-rail" aria-label="Report sections"><p className="eyebrow">In this report</p><a href="#overview">Overview</a><a href="#drivers">Review tasks and maps</a><a href="#pathways">Housing pathways</a><a href="#unknowns">Unknowns</a><a href="#evidence">Evidence & records</a><div className="rail-facts"><span>Screen <strong className={`score-${scorecard.screeningRag.toLowerCase()}`}>{scorecard.screeningRag}</strong></span><span>Housing path <strong>{scorecard.pathwaySummary.replaceAll('_', ' ')}</strong></span><span>Project feasibility <strong>Not assessed</strong></span></div></aside>
+          <aside className="report-rail" aria-label="Report sections"><p className="eyebrow">In this report</p><a href="#overview">Overview</a><a href="#drivers">Review tasks and maps</a><a href="#pathways">Housing pathways</a><a href="#unknowns">Unknowns</a><a href="#evidence">Evidence & records</a><div className="rail-facts"><span>Screen <strong className={`score-${scorecard.screeningRag.toLowerCase()}`}>{scorecard.screeningRag}</strong></span><span>Housing path <strong>{scorecard.pathwaySummary.replaceAll('_', ' ')}</strong></span><span>Project feasibility <strong>Not assessed</strong></span></div><ParcelChat report={report} /></aside>
         </div>
       </div>
     </main>

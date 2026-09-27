@@ -1,5 +1,5 @@
 import type { ParcelReport } from '../reportView'
-import type { HousingPathwayRow } from '../types'
+import type { HousingPathwayRow, SourceObservation } from '../types'
 import type { ScreeningScorecard } from './types'
 
 export type ProjectHousingType = 'single_detached' | 'single_attached' | 'two_unit' | 'three_unit' | 'multi_unit' | 'unknown'
@@ -96,7 +96,8 @@ function safeSources(report: ParcelReport): ParcelChatSource[] {
     if (item.source) add(item.source.sourceId, item.source.sourceUrl, item.source.sourceUpdatedAt, item.source.retrievedAt)
   }
   for (const task of report.scorecard.reviewTasks) for (const sourceRef of task.sourceRefs) {
-    const source = report.selected.ldes?.sources?.[sourceRef as keyof NonNullable<typeof report.selected.ldes.sources>]
+    const observations = Object.values(report.selected.ldes?.sources ?? {}) as Array<SourceObservation<unknown>>
+    const source = report.selected.ldes?.sources?.[sourceRef as keyof NonNullable<typeof report.selected.ldes.sources>] ?? observations.find((item) => item?.sourceId === sourceRef)
     if (source) add(source.sourceId, source.sourceUrl, source.sourceUpdatedAt, source.retrievedAt)
   }
   return [...sources.values()]

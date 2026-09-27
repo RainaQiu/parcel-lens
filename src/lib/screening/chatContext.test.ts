@@ -39,6 +39,14 @@ describe('parcel chat context', () => {
     expect(JSON.stringify(context)).not.toContain('PRIVATE MAILING ADDRESS')
   })
 
+  it('resolves review task source IDs even when source object keys differ', () => {
+    const card = { ...scorecard([]), reviewTasks: [{ id: 'slope', trigger: 'Slope overlap', whyItMatters: 'Impact unknown', whoToConsult: 'Planner', sourceRefs: ['pgh-slope25'], scoreEffect: 'triggered' as const }] }
+    const selected = report(card).selected
+    selected.ldes = { retrievedAt: '2026-09-27T12:00:00Z', sources: { slope: { status: 'available', value: null, sourceId: 'pgh-slope25', sourceUrl: 'https://example.test/slope', sourceUpdatedAt: null, retrievedAt: '2026-09-27T12:00:00Z', joinMethod: 'polygon_clip', nAReason: null } } }
+    const context = buildParcelChatContext({ ...report(card), selected }, brief())
+    expect(context.sources.map((source) => source.sourceId)).toContain('pgh-slope25')
+  })
+
   it('matches each supported housing type to its verified pathway', () => {
     const card = scorecard([row('single_unit_detached', 'P'), row('single_unit_attached', 'A'), row('two_unit', 'S'), row('three_unit', 'C'), row('multi_unit', 'NOT_PERMITTED')])
     expect(checkProjectConcept(card, brief({ housingType: 'single_detached' }))).toMatchObject({ status: 'MATCH_FOUND', pathway: 'P' })

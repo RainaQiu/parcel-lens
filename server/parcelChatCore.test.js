@@ -47,6 +47,14 @@ describe('parcel chat core', () => {
     expect(answer.projectCheck).toBe('OUT_OF_SCOPE')
   })
 
+  it('derives a deterministic residential concept check from the project brief', () => {
+    const scenarioRequest = request('Could I build a 20-unit apartment building here?')
+    scenarioRequest.projectBrief = { ...context.projectBrief, housingType: 'multi_unit', unitCount: 20 }
+    const answer = deterministicParcelAnswer(scenarioRequest, context, null)
+    expect(answer.projectCheck).toBe('REVIEW_PATH')
+    expect(answer.mode).toBe('scenario')
+  })
+
   it('accepts a grounded model response with known citations', () => {
     const output = validateParcelChatOutput(JSON.stringify({
       mode: 'fact', answer: 'The parcel is AMBER because the steep-slope map overlaps it; the proposed footprint impact is unknown.',

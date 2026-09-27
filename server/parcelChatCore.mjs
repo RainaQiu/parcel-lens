@@ -96,14 +96,29 @@ function sourceCitation(context, sourceId, reportSection) {
   return source ? { sourceId, reportSection, kind: 'report' } : null
 }
 
+function deriveProjectCheck(context) {
+  const housingType = context.projectBrief?.housingType
+  if (!housingType || housingType === 'unknown') return null
+  const useType = { single_detached: 'single_unit_detached', single_attached: 'single_unit_attached', two_unit: 'two_unit', three_unit: 'three_unit', multi_unit: 'multi_unit' }[housingType]
+  if (!useType) return { status: 'OUT_OF_SCOPE', explanation: 'This use is outside the residential pathway rules currently verified by ParcelLens.', missingInputs: ['supported use-specific zoning rules'] }
+  if (context.pathwaySummary === 'UNKNOWN') return { status: 'INSUFFICIENT_DATA', explanation: 'The parcel zoning pathway is incomplete, so the project concept cannot be checked reliably.', missingInputs: ['verified zoning pathway'] }
+  const row = context.housingPathways.find((item) => item.useType === useType)
+  if (!row || row.reviewStatus !== 'verified' || row.pathway === 'UNKNOWN') return { status: 'INSUFFICIENT_DATA', explanation: 'The requested residential use row is not fully verified for this parcel.', missingInputs: ['verified use row'] }
+  if (row.pathway === 'P') return { status: 'MATCH_FOUND', explanation: 'A by-right path is listed for this housing form in the verified base-district table; dimensions and other project rules remain unassessed.', missingInputs: [] }
+  if (row.pathway === 'NOT_PERMITTED') return { status: 'NO_LISTED_PATH', explanation: 'No listed path was found for this housing form in the checked base-district table.', missingInputs: ['alternative zoning or approval path'] }
+  return { status: 'REVIEW_PATH', explanation: 'The housing form has a listed review or discretionary path; the required approval and standards review are not assessed here.', missingInputs: ['applicable review path and project standards'] }
+}
+
 export function deterministicParcelAnswer(request, context = request.reportFacts, projectCheck = null) {
   const question = latestQuestion(request).toLowerCase()
-  if (/\b(school|hospital|commercial|retail|office|warehouse)\b/.test(question) || projectCheck?.status === 'OUT_OF_SCOPE') {
+  const effectiveContext = { ...context, projectBrief: request.projectBrief ?? context.projectBrief }
+  const resolvedProjectCheck = projectCheck ?? deriveProjectCheck(effectiveContext)
+  if (/\b(school|hospital|commercial|retail|office|warehouse)\b/.test(question) || resolvedProjectCheck?.status === 'OUT_OF_SCOPE') {
     return { mode: 'out_of_scope', answer: 'This question asks about a non-residential use that the current ParcelLens rule table does not verify. The report can show the parcel zoning and site evidence, but it cannot determine suitability without a use-specific rule table.', projectCheck: 'OUT_OF_SCOPE', citations: [], missingInputs: ['use-specific zoning rules'], suggestedQuestions: ['Which supported residential form should be checked?'] }
   }
-  if (projectCheck && /\b(build|construct|project|apartment|housing|unit|home|residential)\b/.test(question)) {
-    return { mode: projectCheck.status === 'INSUFFICIENT_DATA' ? 'insufficient_data' : 'scenario', answer: projectCheck.explanation,
-      projectCheck: projectCheck.status, citations: [], missingInputs: projectCheck.missingInputs, suggestedQuestions: projectCheck.missingInputs.length ? ['What housing form and proposed footprint should be checked?'] : ['Which dimensional, parking, access, and engineering rules should be verified next?'] }
+  if (resolvedProjectCheck && /\b(build|construct|project|apartment|housing|unit|home|residential)\b/.test(question)) {
+    return { mode: resolvedProjectCheck.status === 'INSUFFICIENT_DATA' ? 'insufficient_data' : 'scenario', answer: resolvedProjectCheck.explanation,
+      projectCheck: resolvedProjectCheck.status, citations: [], missingInputs: resolvedProjectCheck.missingInputs, suggestedQuestions: resolvedProjectCheck.missingInputs.length ? ['What housing form and proposed footprint should be checked?'] : ['Which dimensional, parking, access, and engineering rules should be verified next?'] }
   }
   if (/\b(why|score|amber|green|red|unrated|grade|result)\b/.test(question)) {
     const task = context.reviewTasks.find((item) => item.scoreEffect === 'triggered')
