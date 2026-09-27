@@ -22,6 +22,7 @@ export function ParcelChat({ report }: Props) {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [showContext, setShowContext] = useState(true)
+  const [composerExpanded, setComposerExpanded] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const messagesRef = useRef<HTMLDivElement | null>(null)
 
@@ -46,6 +47,7 @@ export function ParcelChat({ report }: Props) {
     setMessages(nextMessages)
     setTurns((current) => [...current, { message: { role: 'user', content } }])
     setShowContext(false)
+    setComposerExpanded(false)
     setQuestion('')
     setBusy(true)
     setNotice(null)
@@ -99,7 +101,7 @@ export function ParcelChat({ report }: Props) {
         </div>
         {messages.length > 0 && <div className="parcel-chat-followups" aria-label="Suggested questions">{suggestedQuestions.map((item) => <button type="button" key={item} onClick={() => ask(item)} disabled={busy}>{item}</button>)}</div>}
         {notice && <p className="parcel-chat-notice" role="status">{notice}</p>}
-        <form className="parcel-chat-form" onSubmit={(event) => { event.preventDefault(); ask() }}><textarea value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask about the score, pathways, constraints, or your project concept…" maxLength={1800} rows={messages.length > 0 ? 2 : 3} aria-label="Ask about this parcel" /><button type="submit" className="primary-button" disabled={busy || !question.trim()}>{busy ? 'Checking…' : 'Ask'}</button></form>
+        <form className={`parcel-chat-form${composerExpanded ? ' is-expanded' : ''}`} onSubmit={(event) => { event.preventDefault(); ask() }}><textarea value={question} onFocus={() => setComposerExpanded(true)} onBlur={() => { if (!question.trim()) setComposerExpanded(false) }} onChange={(event) => { setQuestion(event.target.value); setComposerExpanded(true) }} placeholder="Ask about the score, pathways, constraints, or your project concept…" maxLength={1800} rows={messages.length > 0 ? 2 : 3} aria-label="Ask about this parcel" /><button type="submit" className="primary-button" disabled={busy || !question.trim()}>{busy ? 'Checking…' : 'Ask'}</button></form>
         <p className="parcel-chat-footnote">Preliminary screen only; not a permit, cost, safety, or financial feasibility determination.</p>
       </section>
     </div>}
