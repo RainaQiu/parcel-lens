@@ -454,16 +454,62 @@ address {
   font-size: 12px;
 }
 
-.score-easier {
+.score-green {
   color: #166534;
 }
 
-.score-mixed {
+.score-amber {
   color: #9a3412;
 }
 
-.score-harder {
+.score-red {
   color: #9f1239;
+}
+
+.score-unrated {
+  color: #475569;
+}
+
+.rag-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.rag-chip {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.pathway-matrix {
+  margin: 12px 0;
+}
+
+.pathway-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.pathway-table th,
+.pathway-table td {
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  padding: 6px 4px;
+}
+
+.pathway-note {
+  margin: 4px 0 0;
+  font-weight: 400;
+  color: var(--muted, #475569);
 }
 
 .score-summary {

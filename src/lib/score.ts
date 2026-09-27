@@ -1,221 +1,151 @@
-/** Deterministic Development Ease Score. Rubric: docs/Development_Ease_Score.md */
-import { acresFrom } from './format'
-import type { Barrier, ParcelScore, SelectedParcel } from './types'
+/** Deterministic LDES v2.2 RAG scoring. See docs and Ease_Score_Upgrade_and_Test_Cases.md. */
+import { combineEaseScore, worstSuitability } from './ldes/combine'
+import { FIXED_SCENARIO_ID, RULE_VERSION, SCORE_VERSION, uniqueFlags } from './ldes/constants'
+import { scoreEnvironment } from './ldes/environment'
+import { scoreHistoric } from './ldes/historic'
+import { scorePotential } from './ldes/potential'
+import { scoreZoning } from './ldes/zoning'
+import type {
+  Barrier,
+  CriticalFlag,
+  EvidenceConfidence,
+  LdesEvidence,
+  ParcelScore,
+  Rag,
+  SelectedParcel,
+} from './types'
 
-const HIGH_ZONING = new Set([
-  'R1D',
-  'H',
-  'P',
-  'EMI',
-  'SP',
-  'GT',
-  'OPR',
-  'GPR',
-  'UPR',
-  'RIV',
-])
-
-const EASIER_ZONING = new Set(['LNC', 'UNC'])
-
-const SMALL_LOT_SQFT = 2500
-const SQFT_PER_ACRE = 43560
-
-const UNSCORED = [
-  'FEMA flood zone',
-  'Steep slope overlay',
-  'PLI / Building & Development permits',
-]
-
-function barrier(
-  partial: Omit<Barrier, 'severity'> & { severity?: Barrier['severity'] },
-): Barrier {
-  const severity =
-    partial.severity ??
-    (partial.penalty >= 20 ? 'high' : partial.penalty >= 10 ? 'medium' : 'low')
-  return { ...partial, severity }
+function parcelId(selected: SelectedParcel, evidence?: LdesEvidence): string | null {
+  return (
+    evidence?.parcelId ??
+    selected.assessment?.PARID ??
+    selected.feature.properties.PIN ??
+    selected.feature.properties.MAPBLOCKLOT ??
+    null
+  )
 }
 
-function zoningPenalty(code: string): { penalty: number; title: string; detail: string } {
-  const upper = code.toUpperCase()
-  if (HIGH_ZONING.has(upper)) {
-    return {
-      penalty: 28,
-      title: 'Higher-review zoning district',
-      detail: `${upper} typically involves extra planning, institutional, or overlay review versus standard multi-family districts.`,
-    }
+function gateUnrated(evidence: LdesEvidence | undefined): { missing: string[]; confidence: EvidenceConfidence } | null {
+  if (!evidence) return { missing: ['LDES evidence'], confidence: 'NOT_RATED' }
+  const missing: string[] = []
+  if (evidence.parcelMatchCount === 0) missing.push('unique parcel_id match')
+  if ((evidence.parcelMatchCount ?? 1) > 1) missing.push('unique parcel_id (multiple matches)')
+  if (evidence.cityVerified === false) missing.push('Pittsburgh city boundary verification')
+  if (evidence.parcelGeometry === 'CENTROID_ONLY' || evidence.parcelGeometry === 'BBOX' || evidence.polygonVerified === false) {
+    missing.push('verified parcel polygon')
   }
-  if (upper.startsWith('RM')) {
-    return {
-      penalty: 12,
-      title: 'Multi-unit residential zoning',
-      detail: `${upper} allows housing, but density and site-plan rules still apply.`,
-    }
+  if (!missing.length) return null
+  return { missing, confidence: 'NOT_RATED' }
+}
+
+function evidenceConfidence(evidence: LdesEvidence, missing: string[], flags: CriticalFlag[]): EvidenceConfidence {
+  if (missing.length || flags.includes('UNRESOLVED_GEOMETRY_BOUNDARY')) return 'NOT_RATED'
+  if (evidence.geometryMethod === 'BBOX' || evidence.geometryMethod === 'CENTROID') return 'LOW'
+  if (evidence.assessmentGeometryType === 'DEVELOPMENT_ENVELOPE' && (evidence.geometryMethod ?? 'TRUE_POLYGON_CLIP') === 'TRUE_POLYGON_CLIP') {
+    return 'HIGH'
   }
-  if (EASIER_ZONING.has(upper)) {
-    return {
-      penalty: 6,
-      title: 'Neighborhood commercial zoning',
-      detail: `${upper} is generally more flexible for mixed-use or infill than single-family or special districts.`,
-    }
-  }
+  return 'MEDIUM'
+}
+
+function emptyDimension(missing: string[]): {
+  rag: Rag
+  flags: CriticalFlag[]
+  drivers: Barrier[]
+  context: Barrier[]
+  missing: string[]
+} {
+  return { rag: 'UNRATED', flags: [], drivers: [], context: [], missing }
+}
+
+export function scoreEvidence(evidence: LdesEvidence, opts?: { assessedAt?: string; parcelId?: string | null }): ParcelScore {
+  const assessedAt = opts?.assessedAt ?? new Date().toISOString()
+  const id = opts?.parcelId ?? evidence.parcelId ?? null
+  const gated = gateUnrated(evidence)
+  const zoning = gated ? emptyDimension(gated.missing) : scoreZoning(evidence)
+  const env = gated
+    ? {
+        ...emptyDimension(gated.missing),
+        slopeRag: 'UNRATED' as Rag,
+        landslideRag: 'UNRATED' as Rag,
+        underminedRag: 'UNRATED' as Rag,
+        floodRag: 'UNRATED' as Rag,
+      }
+    : scoreEnvironment(evidence)
+  const historic = gated ? emptyDimension(gated.missing) : scoreHistoric(evidence)
+  const potential = gated ? emptyDimension(gated.missing) : scorePotential(evidence)
+
+  const missing = [
+    ...(gated?.missing ?? []),
+    ...zoning.missing,
+    ...env.missing,
+    ...historic.missing,
+    ...potential.missing,
+  ]
+  const confidenceMissing = [...(gated?.missing ?? []), ...zoning.missing, ...env.missing, ...historic.missing]
+  const flags = uniqueFlags([...zoning.flags, ...env.flags, ...historic.flags, ...potential.flags])
+  const drivers = [...zoning.drivers, ...env.drivers, ...historic.drivers, ...potential.drivers]
+  const contextDrivers = [...zoning.context, ...env.context, ...historic.context]
+  const suitabilityRag = worstSuitability([zoning.rag, env.rag, historic.rag])
+  const combined = combineEaseScore({
+    suitabilityRag,
+    developmentPotentialRag: potential.rag,
+    useVarianceRequired: flags.includes('USE_VARIANCE_REQUIRED'),
+  })
+  const confidence = gated?.confidence ?? evidenceConfidence(evidence, confidenceMissing, flags)
+
   return {
-    penalty: 10,
-    title: 'Local zoning constraints',
-    detail: `District ${upper} is not among the easiest housing-oriented categories in this rubric.`,
+    scoreVersion: SCORE_VERSION,
+    scoringMethod: 'RAG',
+    parcelId: id,
+    scenarioId: FIXED_SCENARIO_ID,
+    ruleVersion: evidence.ruleVersion ?? RULE_VERSION,
+    dataAsOf: evidence.dataAsOf ?? null,
+    assessedAt,
+    scoreStatus: combined.easeScore === 'UNRATED' ? 'INSUFFICIENT_DATA' : 'ASSESSED',
+    zoningRag: zoning.rag,
+    environmentalGeotechnicalRag: env.rag,
+    historicConditionRag: historic.rag,
+    suitabilityRag,
+    developmentPotentialRag: potential.rag,
+    easeScore: combined.easeScore,
+    overallResult: combined.overallResult,
+    evidenceConfidence: confidence,
+    criticalFlags: flags,
+    drivers,
+    contextDrivers,
+    missingRequired: [...new Set(missing)],
+    assumptions: evidence.potential?.assumptions ?? [],
+    availabilityStatus: 'NOT_ASSESSED',
+    financialFeasibilityStatus: 'NOT_ASSESSED',
+    deliveryTimingStatus: 'NOT_ASSESSED',
+    slopeRag: env.slopeRag,
+    landslideRag: env.landslideRag,
+    underminedRag: env.underminedRag,
+    floodRag: env.floodRag,
+    intersectingDistricts: evidence.districts ?? [],
+    overlays: evidence.overlays ?? [],
+    housingPathways: evidence.housingPathways ?? [],
   }
-}
-
-function currentUseBarrier(useDesc: string, classDesc: string): Barrier | null {
-  const blob = `${useDesc} ${classDesc}`.toUpperCase()
-  if (!blob.trim()) return null
-
-  if (/\bVACANT\b|\bPARKING\b/.test(blob)) {
-    return null
-  }
-
-  if (/\bINDUSTRIAL\b|\bUTILITY\b|\bGOVERNMENT\b/.test(blob)) {
-    return barrier({
-      id: 'use-constrained',
-      penalty: 28,
-      title: 'Constrained current use',
-      detail: 'Industrial, utility, or government use usually means more conversion cost and policy review.',
-      source: {
-        name: 'WPRDC assessments',
-        field: classDesc ? 'CLASSDESC' : 'USEDESC',
-        value: classDesc || useDesc,
-      },
-    })
-  }
-
-  if (/\bAPART\b/.test(blob)) {
-    return barrier({
-      id: 'use-apartments',
-      penalty: 18,
-      title: 'Existing apartment building',
-      detail: 'A large occupied apartment is harder to redevelop than vacant or underused land.',
-      source: { name: 'WPRDC assessments', field: 'USEDESC', value: useDesc },
-    })
-  }
-
-  return null
 }
 
 export function scoreParcel(selected: SelectedParcel): ParcelScore {
-  const barriers: Barrier[] = []
-  const zoning = selected.zoning
-  const assessment = selected.assessment
-
-  if (!zoning?.code) {
-    barriers.push(
-      barrier({
-        id: 'zoning-missing',
-        penalty: 10,
-        title: 'Not on PGH zoning layer',
-        detail: 'City zoning was not found at this parcel centroid, so district rules are incomplete.',
-        source: { name: 'PGH zoning', field: 'zon_new', value: 'missing' },
-      }),
-    )
-  } else {
-    const z = zoningPenalty(zoning.code)
-    barriers.push(
-      barrier({
-        id: 'zoning',
-        penalty: z.penalty,
-        title: z.title,
-        detail: z.detail,
-        source: { name: 'PGH zoning', field: 'zon_new', value: zoning.code },
-      }),
-    )
-  }
-
-  if (!assessment) {
-    barriers.push(
-      barrier({
-        id: 'assessment-missing',
-        penalty: 25,
-        title: 'Incomplete assessment record',
-        detail: 'Use, tax, and lot fields were not returned, so this score is capped by missing data.',
-        source: { name: 'WPRDC assessments', field: 'PARID', value: 'missing' },
-      }),
-    )
-  } else {
-    const useFlag = currentUseBarrier(
-      String(assessment.USEDESC ?? ''),
-      String(assessment.CLASSDESC ?? ''),
-    )
-    if (useFlag) barriers.push(useFlag)
-
-    const acres = acresFrom(assessment, selected.feature.properties.CALCACREAGE)
-    const sqft =
-      Number(assessment.LOTAREA) ||
-      (acres !== null ? acres * SQFT_PER_ACRE : NaN)
-
-    if (!Number.isFinite(sqft) || sqft <= 0) {
-      barriers.push(
-        barrier({
-          id: 'size-unknown',
-          penalty: 5,
-          title: 'Lot size missing',
-          detail: 'Parcel area is unknown, so bulk and setback feasibility cannot be checked.',
-          source: { name: 'WPRDC assessments', field: 'LOTAREA', value: 'missing' },
-        }),
-      )
-    } else if (sqft < SMALL_LOT_SQFT) {
-      barriers.push(
-        barrier({
-          id: 'size-small',
-          penalty: 10,
-          title: 'Very small lot',
-          detail: 'Lots under about 2,500 sq ft are harder to reuse for new housing without variances.',
-          source: {
-            name: 'WPRDC assessments',
-            field: 'LOTAREA',
-            value: String(Math.round(sqft)),
-          },
-        }),
-      )
-    }
-
-    const tax = String(assessment.TAXCODE ?? '').toUpperCase()
-    if (tax === 'E' || tax === 'P') {
-      barriers.push(
-        barrier({
-          id: 'tax-exempt',
-          penalty: 15,
-          title: 'Exempt or PURTA tax status',
-          detail: 'Exempt or public-utility tax status often means disposition or policy steps before private development.',
-          source: {
-            name: 'WPRDC assessments',
-            field: 'TAXCODE',
-            value: String(assessment.TAXDESC ?? tax),
-          },
-        }),
-      )
-    }
-  }
-
-  const penalty = barriers.reduce((sum, item) => sum + item.penalty, 0)
-  const score = Math.max(0, Math.min(100, 100 - penalty))
-  const band: ParcelScore['band'] =
-    score >= 75 ? 'easier' : score >= 50 ? 'mixed' : 'harder'
-
-  barriers.sort((a, b) => b.penalty - a.penalty)
-
-  return { score, band, barriers, unscored: UNSCORED }
+  return scoreEvidence(selected.ldes ?? {}, { parcelId: parcelId(selected, selected.ldes) })
 }
 
 export function scoreSummary(result: ParcelScore): string {
-  const top = result.barriers.slice(0, 2)
-  if (top.length === 0) {
-    return `This site scores ${result.score} (${result.band}). No major zoning, use, size, or tax barriers were flagged in the open records used here.`
+  if (result.easeScore === 'UNRATED') {
+    const gap = result.missingRequired.find((item) => !/^(SETBACKS|COVERAGE|HEIGHT_FAR|PARKING|OPEN_SPACE|ACCESS|OVERLAY_DIMENSIONS)$/i.test(item))
+    return `NEEDS FURTHER EVIDENCE — ${gap ?? result.missingRequired[0] ?? 'required evidence is missing'}.`
   }
-  const titles = top.map((item) => item.title.toLowerCase()).join(' and ')
-  const rest =
-    result.barriers.length > 2
-      ? ` Additional flags: ${result.barriers
-          .slice(2)
-          .map((item) => item.title.toLowerCase())
-          .join(', ')}.`
+  const scored = result.drivers.slice(0, 2).map((item) => item.title.toLowerCase())
+  const extra = scored.length ? ` Main drivers: ${scored.join(' and ')}.` : ''
+  const potentialNote =
+    result.developmentPotentialRag === 'UNRATED'
+      ? ' Headline uses rated suitability only; development potential is still unrated pending setbacks, coverage, height/FAR, parking, and access. Not a permit.'
       : ''
-  return `This site scores ${result.score} (${result.band}). The biggest barriers are ${titles}.${rest}`
+  return `${result.overallResult.replaceAll('_', ' ')} — Ease ${result.easeScore}; suitability ${result.suitabilityRag}; potential ${result.developmentPotentialRag}.${extra}${potentialNote}`
 }
+
+export { combineEaseScore } from './ldes/combine'
+export { computeCapacity } from './ldes/potential'
+export { RULE_VERSION, SCORE_VERSION }

@@ -9,7 +9,7 @@ import {
   siteAddress,
 } from '../lib/format'
 import { scoreParcel, scoreSummary } from '../lib/score'
-import type { Barrier, SelectedParcel } from '../lib/types'
+import type { Barrier, HousingPathwayRow, SelectedParcel } from '../lib/types'
 import { type PanelBlockId } from './blockOrder'
 import { ExpandIcon, ShrinkIcon } from '../ui/icons'
 
@@ -125,6 +125,11 @@ export function ParcelDetails({ loading, error, data, blockOrder, onClose }: Pro
         zoning: (
           <Section key="zoning" title="Zoning, land use & vacancy">
             <Field label="Zoning code" value={data.zoning?.code} />
+            <Field
+              label="Intersecting districts"
+              value={(data.ldes?.districts ?? []).join(', ') || data.zoning?.code}
+            />
+            <Field label="Overlays found" value={(data.ldes?.overlays ?? []).join(', ')} />
             <Field label="Zoning description" value={data.zoning?.description} />
             {data.zoning?.definitionUrl && (
               <div className="field">
@@ -209,25 +214,155 @@ export function ParcelDetails({ loading, error, data, blockOrder, onClose }: Pro
 
 function ScoreCard({ data }: { data: SelectedParcel }) {
   const result = scoreParcel(data)
+  const dimensions: Array<{ label: string; rag: string }> = [
+    { label: 'Zoning', rag: result.zoningRag },
+    { label: 'Environmental', rag: result.environmentalGeotechnicalRag },
+    { label: 'Historic / condition', rag: result.historicConditionRag },
+    { label: 'Development potential', rag: result.developmentPotentialRag },
+  ]
   return (
     <section className="card score-card">
-      <p className="eyebrow">Development Ease Score</p>
+      <p className="eyebrow">Development Ease Score — LDES-v2.2 RAG</p>
       <div className="score-hero">
-        <strong className={`score-numeral score-${result.band}`}>{result.score}</strong>
+        <strong className={`score-numeral score-${result.easeScore.toLowerCase()}`}>{result.easeScore}</strong>
         <div>
-          <p className={`score-band score-${result.band}`}>{bandLabel(result.band)}</p>
+          <p className={`score-band score-${result.easeScore.toLowerCase()}`}>
+            {result.overallResult.replaceAll('_', ' ')}
+          </p>
           <p className="score-summary">{scoreSummary(result)}</p>
         </div>
       </div>
-      <ul className="barrier-list">
-        {result.barriers.map((item) => (
-          <BarrierRow key={item.id} barrier={item} />
+      <div className="rag-grid">
+        {dimensions.map((item) => (
+          <div key={item.label} className="rag-chip">
+            <span>{item.label}</span>
+            <strong className={`score-${item.rag.toLowerCase()}`}>{item.rag}</strong>
+          </div>
         ))}
-      </ul>
-      <p className="note unscored">
-        Not in this score: {result.unscored.join(', ')}.
+        <div className="rag-chip">
+          <span>Suitability</span>
+          <strong className={`score-${result.suitabilityRag.toLowerCase()}`}>{result.suitabilityRag}</strong>
+        </div>
+        <div className="rag-chip">
+          <span>Evidence</span>
+          <strong>{result.evidenceConfidence}</strong>
+        </div>
+      </div>
+      <HousingPathwayMatrix rows={result.housingPathways} splitZoned={new Set(result.housingPathways.map((row) => row.districtKey)).size >= 2} />
+      {result.criticalFlags.length > 0 && (
+        <p className="note">Flags: {result.criticalFlags.join(', ')}</p>
+      )}
+      {result.easeScore === 'UNRATED' && result.missingRequired.length > 0 && (
+        <>
+          <p className="subhead">Why this is unrated</p>
+          <ul className="barrier-list">
+            {result.missingRequired.map((item) => (
+              <li key={item} className="barrier barrier-high">
+                <div>
+                  <strong>Required evidence missing</strong>
+                  <p>{item}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {result.easeScore !== 'UNRATED' && result.developmentPotentialRag === 'UNRATED' && (
+        <p className="note">
+          Development potential is still unrated: setbacks, coverage, height/FAR, parking, and access are not in the live
+          rule tables yet. The headline color is the lower of the already-rated zoning, environmental, and historic
+          chips.
+        </p>
+      )}
+      <p className="note">
+        Observed: districts {(data.ldes?.districts ?? []).join(', ') || '—'}; slope{' '}
+        {data.ldes?.slopeOverlapPct ?? 0}%; landslide {data.ldes?.landslideOverlapPct ?? 0}%;
+        undermined {data.ldes?.underminedOverlapPct ?? 0}%; flood {data.ldes?.floodCategory ?? 'NONE'}.
       </p>
+      {result.drivers.length > 0 && (
+        <>
+          <p className="subhead">Drivers</p>
+          <ul className="barrier-list">
+            {result.drivers.map((item, index) => (
+              <BarrierRow key={`${item.id}-${index}`} barrier={item} />
+            ))}
+          </ul>
+        </>
+      )}
+      {result.contextDrivers.length > 0 && (
+        <>
+          <p className="subhead">Context</p>
+          <ul className="barrier-list">
+            {result.contextDrivers.map((item, index) => (
+              <BarrierRow key={`ctx-${item.id}-${index}`} barrier={item} />
+            ))}
+          </ul>
+        </>
+      )}
     </section>
+  )
+}
+
+function HousingPathwayMatrix({
+  rows,
+  splitZoned,
+}: {
+  rows: HousingPathwayRow[]
+  splitZoned: boolean
+}) {
+  return (
+    <div className="pathway-matrix">
+      <p className="subhead">Housing pathways by base zoning</p>
+      <p className="note">
+        Colors describe §911.02 base-district use listing only. They are not a permit, bulk,
+        parking, overlay, or overall development-ease result. Overlay, setbacks, coverage,
+        height/FAR, and parking are not applied yet.
+      </p>
+      {splitZoned && (
+        <p className="note">
+          Split-zoned parcel: each intersecting district is shown separately. Colors are not combined.
+          Manual review is required.
+        </p>
+      )}
+      {rows.length === 0 ? (
+        <p className="note">No zoning district codes were available to match against §911.02.</p>
+      ) : (
+        <table className="pathway-table">
+          <thead>
+            <tr>
+              <th>Use</th>
+              <th>District</th>
+              <th>Path</th>
+              <th>Standards</th>
+              <th>Version</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={`${row.useType}-${row.districtKey}-${row.rawDistrict}`}>
+                <td>{row.useLabel}</td>
+                <td>
+                  {row.rawDistrict}
+                  {row.districtKey !== row.rawDistrict ? ` → ${row.districtKey}` : ''}
+                </td>
+                <td>
+                  <strong className={`score-${row.rag.toLowerCase()}`}>
+                    {row.pathway === 'UNKNOWN' ? 'UNRATED' : row.pathway} · {row.rag}
+                  </strong>
+                  {row.notes ? <p className="pathway-note">{row.notes}</p> : null}
+                </td>
+                <td>{row.standards.join(', ') || '—'}</td>
+                <td>
+                  <a href={row.sourceUrl} target="_blank" rel="noreferrer">
+                    {row.ruleVersion}
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
   )
 }
 
@@ -243,12 +378,6 @@ function BarrierRow({ barrier }: { barrier: Barrier }) {
       </span>
     </li>
   )
-}
-
-function bandLabel(band: 'easier' | 'mixed' | 'harder'): string {
-  if (band === 'easier') return 'Easier'
-  if (band === 'harder') return 'Harder'
-  return 'Mixed'
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
