@@ -778,6 +778,14 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .skeleton-line-short { width: 62%; }
 @keyframes skeleton-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 @media (prefers-reduced-motion: reduce) { .skeleton-line { animation: none; } }
+.screening-answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
+.screening-answers > div, .screening-observations > div { border: 1px solid var(--line); background: #f8fafd; border-radius: 10px; padding: 14px 16px; }
+.screening-answers small { color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.screening-answers p { margin: 8px 0 0; line-height: 1.5; overflow-wrap: anywhere; }
+.screening-observations { display: grid; gap: 10px; }
+.screening-observations > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px 12px; }
+.screening-observations small { display: block; width: 100%; color: var(--muted); }
+.screening-observations a { color: var(--accent); }
 .ai-label, .fallback-label { color: var(--muted); font-size: 12px; margin: 14px 0 0; }
 .scope-note { border-left: 3px solid #d97706; background: #fff8ed; color: #8a4b08; font-size: 13px; line-height: 1.5; padding: 10px 14px; margin: 22px 0 0; }
 .report-section { margin-top: 44px; scroll-margin-top: 24px; }
@@ -863,6 +871,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   .report-shell { width: min(100% - 28px, 1180px); padding-top: 16px; }
   .report-top-nav { margin-bottom: 20px; }
   .report-summary-card { padding: 20px; }
+  .screening-answers { grid-template-columns: 1fr; }
   .report-section { margin-top: 34px; }
 }
 @media print { .report-rail, .report-actions, .report-top-nav { display: none; } .report-page { background: #fff; } .report-layout { display: block; } .report-details { break-inside: avoid; } }

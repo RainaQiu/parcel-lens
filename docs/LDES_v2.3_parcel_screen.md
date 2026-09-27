@@ -1,5 +1,7 @@
 # LDES v2.3 parcel screening
 
+**Historical rule version.** The current default report uses [LDES v3 preliminary scorecard](LDES_v3_screening_scorecard.md). This file and its fixtures remain for regression review.
+
 The default workflow has no housing scenario or unit count. Selecting a parcel automatically checks all five housing use paths in the verified Pittsburgh §911.02 base-district table. Each row is an output; a prohibited row does not imply that the whole parcel needs a use variance.
 
 For one verified base district, the zoning summary is GREEN if any row is `P`, AMBER if there is no `P` but at least one row is `A`, `S`, `C`, or `P_OR_S`, and RED only if all five rows are `NOT_PERMITTED`. Missing or unverified cells, split base districts, or untreated overlays make the zoning summary UNRATED. This color says only whether a listed housing use path exists. It does not assess proposed unit count, dimensional rules, parking, permits, or financial feasibility.

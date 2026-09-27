@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildFallbackSummary, humanizeMissing } from './reportView'
+import { makeParcelReport } from './reportView'
 import type { ParcelScore } from './types'
 
 describe('source-based summary', () => {
@@ -14,5 +15,16 @@ describe('source-based summary', () => {
   it('turns scoring input codes into readable missing-data labels', () => {
     expect(humanizeMissing('HEIGHT_FAR')).toBe('Building height and floor-area ratio rules')
     expect(humanizeMissing('verified parcel polygon')).toBe('verified parcel polygon')
+  })
+})
+
+describe('v3 report model', () => {
+  it('binds scorecard identity to selected parcel PIN', () => {
+    const parcel = { feature: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[[-80, 40], [-79.9, 40], [-79.9, 40.1], [-80, 40]]] }, properties: { PIN: '0052P00130000000' } }, assessment: null, zoning: null }
+    const report = makeParcelReport(parcel as never)
+    expect(report.pin).toBe('0052P00130000000')
+    expect(report.scorecard.parcelId).toBe(report.pin)
+    expect(report.scorecard.scoreVersion).toBe('LDES-v3-screening-scorecard')
+    expect('score' in report).toBe(false)
   })
 })

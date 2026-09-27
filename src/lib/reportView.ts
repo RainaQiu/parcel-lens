@@ -1,13 +1,15 @@
 import { siteAddress } from './format'
 import { canonicalPin } from './savedParcels'
-import { scoreParcel } from './score'
+import { scoreScreeningParcel } from './screening/scorecard'
+import { buildScreeningFallback } from './screening/copy'
+import type { ScreeningScorecard } from './screening/types'
 import type { ParcelScore, SelectedParcel } from './types'
 
 export type ParcelReport = {
   pin: string
   address: string
   selected: SelectedParcel
-  score: ParcelScore
+  scorecard: ScreeningScorecard
   fallbackSummary: string
 }
 
@@ -30,12 +32,12 @@ export function buildFallbackSummary(score: ParcelScore): string {
 export function makeParcelReport(selected: SelectedParcel): ParcelReport {
   const pin = canonicalPin(selected.feature.properties.PIN ?? '')
   if (!pin) throw new Error('Parcel boundary has no PIN')
-  const score = scoreParcel(selected)
+  const scorecard = scoreScreeningParcel(selected)
   return {
     pin,
     address: siteAddress(selected.assessment).line1,
     selected,
-    score,
-    fallbackSummary: buildFallbackSummary(score),
+    scorecard,
+    fallbackSummary: buildScreeningFallback(scorecard),
   }
 }

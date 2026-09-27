@@ -1,6 +1,6 @@
 # Parcel Lens documents
 
-Read **[LDES v2.3 parcel screening](LDES_v2.3_parcel_screen.md)** first. It describes the default no-scenario screen (`scoreVersion = LDES-v2.3-parcel-screen`).
+Read **[LDES v3 preliminary scorecard](LDES_v3_screening_scorecard.md)** first. It describes the default no-scenario screen (`scoreVersion = LDES-v3-screening-scorecard`).
 
 Older files below are kept as history. They still mention 0–100 scores, letter-group zoning guesses, or “no score implemented.” Those descriptions are not the running app.
 
@@ -8,8 +8,8 @@ Older files below are kept as history. They still mention 0–100 scores, letter
 
 | File | Role |
 |---|---|
-| [LDES_v2.3_parcel_screen.md](LDES_v2.3_parcel_screen.md) | Current default scoring contract |
-| [verification/real-parcel-cases.md](verification/real-parcel-cases.md) | Four public parcel checks and observed rule outcomes |
+| [LDES_v3_screening_scorecard.md](LDES_v3_screening_scorecard.md) | Current default scoring contract |
+| [verification/screening-v3-cases.md](verification/screening-v3-cases.md) | V3 public parcel checks and pending expert review |
 | [verification/deployment-readiness.md](verification/deployment-readiness.md) | API routes and production checks |
 | [plans/codex-use-table.md](plans/codex-use-table.md) | Phase 1 plan: verified §911.02 pathways for five housing uses |
 | [plans/unlock-rated-headline.md](plans/unlock-rated-headline.md) | Follow-up plan: stop UNRATED headline when suitability is already rated |
@@ -19,6 +19,8 @@ Older files below are kept as history. They still mention 0–100 scores, letter
 | File | Role |
 |---|---|
 | [Development_Ease_Score.md](Development_Ease_Score.md) | LDES v2.1 0–100 + RAG mix; **superseded** by v2.3 parcel screening |
+| [LDES_v2.3_parcel_screen.md](LDES_v2.3_parcel_screen.md) | Historical parcel RAG and regression fixtures |
+| [verification/real-parcel-cases.md](verification/real-parcel-cases.md) | Four historical v2.3 public parcel checks |
 | [LDES_v2.2_RAG.md](LDES_v2.2_RAG.md) | Historical scenario-based RAG rules; superseded for the default flow |
 | [Development_Ease_Scoring_Proposal.md](Development_Ease_Scoring_Proposal.md) | Early methods memo (v0.2); predates the live engine |
 | [Track1_Data_Assessment_and_PRD.md](Track1_Data_Assessment_and_PRD.md) | Track 1 PRD and data inventory |
@@ -32,7 +34,8 @@ Older files below are kept as history. They still mention 0–100 scores, letter
 | `src/lib/housingPathways.ts` | GIS `zon_new` → `districtKey`; five-use lookup |
 | `src/lib/ldes.ts` | Live GIS collection (POST polygon clip + point zoning fallback) |
 | `src/lib/ldes/*.ts` | Zoning / environment / historic / potential / combine |
-| `src/lib/score.ts` | `scoreEvidence` / `scoreSummary` |
-| `src/panel/ParcelDetails.tsx` | Sidebar matrix and RAG chips |
+| `src/lib/screening/*.ts` | Current v3 pathway, mapped evidence, review-task, and RAG rules |
+| `src/lib/score.ts` | Historical v2.3 scoring regression API |
+| `src/panel/ReportPage.tsx` | Current full report and source details |
 
 Run `npm test` for historical fixtures and current parcel-screening cases.

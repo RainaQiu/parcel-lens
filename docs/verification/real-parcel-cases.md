@@ -1,5 +1,7 @@
 # Real parcel checks — 2026-09-27
 
+**Historical v2.3 observations and expectations.** The default v3 reinterprets these inputs as described in the [v3 review ledger](screening-v3-cases.md); notably, a large geotechnical overlap no longer makes the default headline Red by percentage alone.
+
 These four public PINs were selected from the [Allegheny County parcel boundary service](https://gisdata.alleghenycounty.us/arcgis/rest/services/OPENDATA/Parcels/MapServer/0). Zoning, slope, and FEMA candidates were queried from their original GIS services through the local development proxy; the app then clipped the returned polygons and displayed its result. The source services did not provide an update date in these responses. The retrieval date below is **not** a source update date. The percentages are app-calculated observations, not an independent survey. The small [regression fixture](../../src/lib/ldes/fixtures/verified-parcels.json) preserves these observed facts.
 
 | PIN and location | Observed facts | Expected screen | Source retrieval |
