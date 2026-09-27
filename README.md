@@ -1,6 +1,21 @@
 # Parcel Lens
 
-Pittsburgh parcel screening prototype. Search by a 16-character county PIN, choose an address candidate, or click a map parcel. The map shows a short preview; a full report opens at `/parcels/:pin`. Add up to four verified parcel IDs to a local saved list and compare them at `/compare?pins=...`. The browser retrieves the connected public sources and calculates the **LDES v3 preliminary screening RAG** deterministically. No advanced options or hidden unit-count scenario are required.
+Parcel Lens is an AI Horizons 2026 Track 1 submission for the **Development Feasibility & Pro Forma Navigator / Policy to Permit** challenge. It is an early-stage Pittsburgh parcel screening tool for small and mid-size developers and municipal planners.
+
+Search by a 16-character county PIN, choose an address candidate, or click a map parcel. The map shows a short preview; a full report opens at `/parcels/:pin`. Add up to four verified parcel IDs to a local saved list and compare them at `/compare?pins=...`. The browser retrieves the connected public sources and calculates the **LDES v3 preliminary screening RAG** deterministically. No advanced options or hidden unit-count scenario are required.
+
+## Hackathon submission
+
+- **Project title:** Parcel Lens
+- **Track:** Development Feasibility & Pro Forma Navigator / Track 1 Policy to Permit
+- **Live app:** <https://parcel-lens.jessexu.me/>
+- **Repository:** <https://github.com/RainaQiu/parcel-lens>
+- **Demo video:** to be added before submission
+- **Submission checklist:** [docs/SUBMISSION_CHECKLIST.md](docs/SUBMISSION_CHECKLIST.md)
+
+Parcel Lens answers an early due-diligence question: **is this parcel worth another human review pass, and what should be verified next?** It combines parcel search, public GIS and record evidence, a deterministic four-level screening grade, side-by-side parcel comparison, a scoring rubric, and an optional LLM assistant that explains the report without changing the score.
+
+If we continued after the hackathon, the next work would be a practitioner review of 12-20 known parcel cases, clearer starter-home scenario checks once users provide housing type and scale, stronger data quality monitoring for public sources, and deployment hardening for a planning department or nonprofit workflow.
 
 ```bash
 npm install
