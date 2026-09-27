@@ -49,14 +49,14 @@ export function ParcelChat({ report }: Props) {
       if (response.projectBriefPatch) setProjectBrief((current) => mergeChatProjectBrief(current, response.projectBriefPatch))
       setMessages((current) => [...current, answerMessage(response)])
       setTurns((current) => [...current, { message: answerMessage(response), response }])
-      if (response.webSearch?.used) setNotice('回答包含联网检索内容；带有 “Web-sourced” 标记的句子来自外部网页。')
-      else if (response.fallback) setNotice('当前显示基于报告原始事实的兜底回答。')
+      if (response.webSearch?.used) setNotice('This answer includes web-retrieved content. Sentences marked “Web-sourced” come from external webpages.')
+      else if (response.fallback) setNotice('Showing a fallback answer based on the report source facts.')
     }).catch((error: unknown) => {
       if (controller.signal.aborted) return
       const fallback = deterministicChatFallback(report, content, projectBrief)
       setMessages((current) => [...current, answerMessage(fallback)])
       setTurns((current) => [...current, { message: answerMessage(fallback), response: fallback }])
-      setNotice(error instanceof Error ? `${error.message} 已切换到报告事实兜底。` : '助手暂时不可用，已切换到报告事实兜底。')
+      setNotice(error instanceof Error ? `${error.message} Switched to a report-facts fallback.` : 'The assistant is temporarily unavailable; switched to a report-facts fallback.')
     }).finally(() => {
       if (!controller.signal.aborted) setBusy(false)
     })
@@ -64,13 +64,13 @@ export function ParcelChat({ report }: Props) {
 
   return <>
     <section className="parcel-chat-card" aria-label="Ask about this parcel">
-      <div><p className="eyebrow">Parcel assistant</p><h2>Ask about this parcel</h2><p>用报告中的已验证事实提问，也可以补充住宅类型、规模和土地控制假设。</p></div>
+      <div><p className="eyebrow">Parcel assistant</p><h2>Ask about this parcel</h2><p>Ask questions using verified report facts, or add a housing type, project size, and land-control assumption.</p></div>
       <button type="button" className="primary-button parcel-chat-open" onClick={() => setOpen(true)}>Open assistant</button>
     </section>
     {open && <div className="parcel-chat-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false) }}>
       <section className="parcel-chat-drawer" role="dialog" aria-modal="true" aria-labelledby="parcel-chat-title">
         <header className="parcel-chat-header"><div><p className="eyebrow">Parcel assistant</p><h2 id="parcel-chat-title">Ask about {report.address}</h2></div><button type="button" className="parcel-chat-close" onClick={() => setOpen(false)} aria-label="Close assistant">×</button></header>
-        <div className="parcel-chat-scope">回答范围：当前 Parcel Report、已接入官方来源、你提供的项目假设。允许联网时，外部内容会明确标记为 <b>Web-sourced</b>。</div>
+        <div className="parcel-chat-scope">Scope: the current Parcel Report, connected official sources, and project assumptions you provide. When web research is enabled, external content is marked <b>Web-sourced</b>.</div>
         <details className="parcel-chat-assumptions"><summary>Project assumptions (optional)</summary><div className="parcel-chat-fields">
           <label>Housing type<select value={projectBrief.housingType} onChange={(event) => updateBrief({ housingType: event.target.value as ProjectHousingType })}><option value="unknown">Choose later</option><option value="single_detached">Single detached</option><option value="single_attached">Single attached</option><option value="two_unit">Two-unit</option><option value="three_unit">Three-unit</option><option value="multi_unit">Multi-unit</option></select></label>
           <label>Units<input type="number" min="1" max="10000" value={projectBrief.unitCount ?? ''} onChange={(event) => updateBrief({ unitCount: event.target.value ? Number(event.target.value) : null })} /></label>
