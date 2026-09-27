@@ -35,6 +35,13 @@ export type ParcelChatRequest = {
   allowWebSearch: boolean
 }
 
+export type ParcelChatStreamHandlers = {
+  onStart?: (value: { requestId?: string; promptVersion?: string }) => void
+  onDelta?: (text: string) => void
+  onComplete?: (response: ParcelChatResponse) => void
+  onFallback?: (response: ParcelChatResponse) => void
+}
+
 let memorySessionId: string | null = null
 
 function chatSessionId(): string {
@@ -94,6 +101,79 @@ export function citationLabel(citation: ChatCitation): string {
   if (citation.kind === 'official') return `Official source${citation.provider ? ` · ${citation.provider}` : ''}${citation.title ? ` · ${citation.title}` : ''}`
   const labels: Record<string, string> = { overview: 'Overview', drivers: 'Review tasks', pathways: 'Housing pathways', unknowns: 'Unknowns', evidence: 'Evidence' }
   return `Report · ${labels[citation.reportSection] ?? citation.reportSection}`
+}
+
+function parseStreamResponse(value: unknown): ParcelChatResponse {
+  if (!value || typeof value !== 'object' || typeof (value as { answer?: unknown }).answer !== 'string') throw new Error('The parcel assistant returned an invalid response.')
+  return value as ParcelChatResponse
+}
+
+export function createParcelChatSseDecoder(handlers: ParcelChatStreamHandlers) {
+  let buffer = ''
+  let event = ''
+  let dataLines: string[] = []
+  let terminal: ParcelChatResponse | null = null
+
+  function consume(line: string) {
+    if (line === '') {
+      if (event && dataLines.length) {
+        let value: unknown
+        try { value = JSON.parse(dataLines.join('\n')) } catch { throw new Error('The parcel assistant returned malformed stream data.') }
+        if (event === 'start') handlers.onStart?.(value as { requestId?: string; promptVersion?: string })
+        else if (event === 'delta' && typeof (value as { text?: unknown })?.text === 'string') handlers.onDelta?.((value as { text: string }).text)
+        else if (event === 'complete') { terminal = parseStreamResponse(value); handlers.onComplete?.(terminal) }
+        else if (event === 'fallback') { terminal = parseStreamResponse(value); handlers.onFallback?.(terminal) }
+        else if (event === 'error') throw new Error(String((value as { message?: unknown })?.message ?? 'The parcel assistant returned an error.'))
+      }
+      event = ''
+      dataLines = []
+      return
+    }
+    if (line.startsWith('event:')) event = line.slice(6).trim()
+    else if (line.startsWith('data:')) dataLines.push(line.slice(5).replace(/^ /, ''))
+  }
+
+  return {
+    push(text: string) {
+      buffer += text
+      const lines = buffer.split(/\r?\n/)
+      buffer = lines.pop() ?? ''
+      for (const line of lines) consume(line)
+    },
+    finish() {
+      if (buffer) consume(buffer)
+      if (dataLines.length) consume('')
+      return terminal
+    },
+  }
+}
+
+export async function streamParcelChat(request: ParcelChatRequest, handlers: ParcelChatStreamHandlers = {}, signal?: AbortSignal): Promise<ParcelChatResponse> {
+  const response = await fetch('/api/parcel-chat', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', 'x-parcel-chat-session': chatSessionId() }, body: JSON.stringify(request), signal })
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!response.ok) {
+    let value: unknown = null
+    try { value = await response.json() } catch { /* keep the status-based message */ }
+    throw new Error(typeof value === 'object' && value !== null && 'error' in value ? String(value.error) : 'The parcel assistant is unavailable.')
+  }
+  if (!contentType.includes('text/event-stream') || !response.body) {
+    const result = parseStreamResponse(await response.json())
+    if (result.fallback) handlers.onFallback?.(result)
+    else handlers.onComplete?.(result)
+    return result
+  }
+  const decoder = createParcelChatSseDecoder(handlers)
+  const reader = response.body.getReader()
+  const textDecoder = new TextDecoder()
+  while (true) {
+    const chunk = await reader.read()
+    if (chunk.done) break
+    decoder.push(textDecoder.decode(chunk.value, { stream: true }))
+  }
+  decoder.push(textDecoder.decode())
+  const terminal = decoder.finish()
+  if (!terminal) throw new Error('The parcel assistant stream ended without a terminal response.')
+  return terminal
 }
 
 export async function sendParcelChat(request: ParcelChatRequest, signal?: AbortSignal): Promise<ParcelChatResponse> {

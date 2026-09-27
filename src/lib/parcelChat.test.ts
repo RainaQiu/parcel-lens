@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ParcelReport } from './reportView'
-import { buildParcelChatRequest, citationLabel, deterministicChatFallback, mergeChatProjectBrief, sendParcelChat } from './parcelChat'
+import { buildParcelChatRequest, citationLabel, deterministicChatFallback, mergeChatProjectBrief, sendParcelChat, streamParcelChat } from './parcelChat'
 import type { HousingPathwayRow } from './types'
 import type { ProjectBrief } from './screening/chatContext'
 import type { ScreeningScorecard } from './screening/types'
@@ -52,5 +52,39 @@ describe('parcel chat client', () => {
     vi.stubGlobal('fetch', fetchMock)
     await expect(sendParcelChat(buildParcelChatRequest(report(), brief(), [{ role: 'user', content: 'Why?' }]))).resolves.toEqual(response)
     expect(fetchMock).toHaveBeenCalledWith('/api/parcel-chat', expect.objectContaining({ method: 'POST' }))
+  })
+
+  it('decodes streamed deltas and resolves on a complete event', async () => {
+    const response = { mode: 'fact', answer: 'The parcel is AMBER.', projectCheck: null, citations: [], missingInputs: [], suggestedQuestions: [], fallback: false }
+    const encoder = new TextEncoder()
+    const chunks = [
+      'event: start\ndata: {"requestId":"r1"}\n\n',
+      'event: delta\ndata: {"text":"The parcel is "}\n\n',
+      'event: delta\ndata: {"text":"AMBER."}\n\n',
+      `event: complete\ndata: ${JSON.stringify(response)}\n\n`,
+    ]
+    const stream = new ReadableStream({ start(controller) { for (const chunk of chunks) controller.enqueue(encoder.encode(chunk)); controller.close() } })
+    const fetchMock = vi.fn().mockResolvedValue(new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } }))
+    vi.stubGlobal('fetch', fetchMock)
+    const deltas: string[] = []
+    await expect(streamParcelChat(buildParcelChatRequest(report(), brief(), [{ role: 'user', content: 'Why?' }]), { onDelta: (text) => deltas.push(text) })).resolves.toEqual(response)
+    expect(deltas).toEqual(['The parcel is ', 'AMBER.'])
+    expect(fetchMock.mock.calls[0][1].headers.Accept).toBe('text/event-stream')
+  })
+
+  it('resolves with a fallback event and reports stream errors', async () => {
+    const response = { mode: 'insufficient_data', answer: 'The report facts are incomplete.', projectCheck: null, citations: [], missingInputs: ['zoning'], suggestedQuestions: [], fallback: true }
+    const body = `event: fallback\ndata: ${JSON.stringify(response)}\n\n`
+    const fetchMock = vi.fn().mockResolvedValue(new Response(body, { status: 200, headers: { 'Content-Type': 'text/event-stream' } }))
+    vi.stubGlobal('fetch', fetchMock)
+    const fallback = vi.fn()
+    await expect(streamParcelChat(buildParcelChatRequest(report(), brief(), [{ role: 'user', content: 'Why?' }]), { onFallback: fallback })).resolves.toEqual(response)
+    expect(fallback).toHaveBeenCalledWith(response)
+  })
+
+  it('rejects a stream that ends without a terminal event', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('event: delta\ndata: {"text":"partial"}\n\n', { status: 200, headers: { 'Content-Type': 'text/event-stream' } }))
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(streamParcelChat(buildParcelChatRequest(report(), brief(), [{ role: 'user', content: 'Why?' }]))).rejects.toThrow(/terminal/i)
   })
 })
