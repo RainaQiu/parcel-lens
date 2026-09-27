@@ -1,4 +1,6 @@
-# ParcelLens Development Ease Score（LDES v2.1）
+# ParcelLens Development Ease Score（LDES v2.1，历史稿）
+
+> **已过时。** Live 实现是 `LDES-v2.2-rag`（无 0–100 主分、有核实 use table）。请改读 [LDES_v2.2_RAG.md](LDES_v2.2_RAG.md)。下文保留作 v2.1 门槛讨论，**不要按本文改代码**。
 
 版本：`LDES-v2.1`｜2026-09-26｜文档规范，代码须按本版收紧后才能继续自称 `LDES-v2.x`
 

@@ -1,4 +1,6 @@
-# ParcelLens｜Development Ease Score：依据、方法与验证计划
+# ParcelLens｜Development Ease Score：依据、方法与验证计划（历史稿）
+
+> **已过时。** 当前产品已实现 `LDES-v2.2-rag`。请改读 [LDES_v2.2_RAG.md](LDES_v2.2_RAG.md)。本文是 2026-09-26 的方法备忘，其中“尚未实现评分”不再成立。
 
 版本：v0.2 草案｜2026-09-26｜供团队审阅；**尚无经验证的数值算法，当前产品尚未实现评分**
 
