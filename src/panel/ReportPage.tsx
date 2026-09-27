@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { formatDate, formatMoney, formatNumber, formatYear, mailingAddress, siteAddress } from '../lib/format'
 import { loadParcelByPin } from '../lib/parcelReport'
 import { makeParcelReport, type ParcelReport } from '../lib/reportView'
 import { buildExplanationInput } from '../lib/screening/explanationInput'
 import { screeningPresentation } from '../lib/screening/presentation'
+import { GradingRubricModal } from './GradingRubricModal'
 import { ParcelChat } from './ParcelChat'
 import { SourceObservationsList } from './SourceObservations'
 
@@ -27,6 +28,8 @@ export function ReportPage({ pin, cached, saved, onBack, onAdd, onLoaded }: Prop
   const [loadError, setLoadError] = useState<string | null>(null)
   const [explanation, setExplanation] = useState<Explanation | null>(null)
   const [explanationUnavailable, setExplanationUnavailable] = useState(false)
+  const [rubricOpen, setRubricOpen] = useState(false)
+  const closeRubric = useCallback(() => setRubricOpen(false), [])
 
   useEffect(() => {
     setReport(cached?.pin === pin ? cached : null)
@@ -89,7 +92,7 @@ export function ReportPage({ pin, cached, saved, onBack, onAdd, onLoaded }: Prop
         <div className="report-layout">
           <div className="report-main">
             <section className="report-summary-card" id="overview">
-              <div className="report-summary-heading"><span className={`report-status score-${scorecard.screeningRag.toLowerCase()}`}>{shown.gradeText}</span><span>{scorecard.scoreVersion}</span></div>
+              <div className="report-summary-heading"><span className={`report-status score-${scorecard.screeningRag.toLowerCase()}`}>{shown.gradeText}</span><div className="report-summary-meta"><span>{scorecard.scoreVersion}</span><button type="button" onClick={() => setRubricOpen(true)}>Scoring rubric</button></div></div>
               <h2>Development Ease Score — Preliminary zoning &amp; site screen</h2>
               {explanation ? (
                 <>
@@ -136,6 +139,7 @@ export function ReportPage({ pin, cached, saved, onBack, onAdd, onLoaded }: Prop
           <aside className="report-rail" aria-label="Report sections"><p className="eyebrow">In this report</p><a href="#overview">Overview</a><a href="#drivers">Review tasks and maps</a><a href="#pathways">Housing pathways</a><a href="#unknowns">Unknowns</a><a href="#evidence">Evidence & records</a><div className="rail-facts"><span>Screen <strong className={`score-${scorecard.screeningRag.toLowerCase()}`}>{scorecard.screeningRag}</strong></span><span>Housing path <strong>{scorecard.pathwaySummary.replaceAll('_', ' ')}</strong></span><span>Project feasibility <strong>Not assessed</strong></span></div><ParcelChat report={report} /></aside>
         </div>
       </div>
+      <GradingRubricModal open={rubricOpen} onClose={closeRubric} />
     </main>
   )
 }

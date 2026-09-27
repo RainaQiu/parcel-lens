@@ -776,6 +776,8 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .report-main { min-width: 0; }
 .report-summary-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: clamp(22px, 3vw, 36px); box-shadow: 0 12px 30px #1420330b; }
 .report-summary-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 13px; }
+.report-summary-meta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.report-summary-meta button { padding: 7px 11px; font-size: 12px; }
 .report-status { display: inline-block; border-radius: 8px; background: #f0f4fa; padding: 9px 12px; font-weight: 800; }
 .report-summary-card h2 { margin: 24px 0 10px; font-size: 25px; }
 .report-lead { font-size: clamp(17px, 2vw, 20px); line-height: 1.55; max-width: 68ch; margin: 0; }
@@ -836,6 +838,49 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .property-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; margin: 0; }
 .property-grid dt { font-size: 11px; text-transform: uppercase; color: var(--muted); }
 .property-grid dd { margin: 3px 0 0; overflow-wrap: anywhere; }
+
+.grading-rubric-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: rgba(16, 32, 57, 0.45);
+}
+.grading-rubric-modal {
+  width: min(920px, 100%);
+  max-height: min(90vh, 880px);
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px #14203333;
+  padding: 22px 24px 28px;
+  color: var(--ink);
+}
+.grading-rubric-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.grading-rubric-header h2 { margin: 4px 0 0; font-size: 26px; letter-spacing: -.02em; }
+.grading-rubric-modal .icon-btn { width: 32px; height: 32px; padding: 0; flex: 0 0 auto; }
+.grading-rubric-lead { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 10px 0 16px; max-width: 75ch; }
+.grading-rubric-figure { margin: 0 0 22px; }
+.grading-rubric-figure img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; background: #f7f9fd; }
+.grading-rubric-modal section + section { margin-top: 22px; }
+.grading-rubric-modal h3 { margin: 0 0 8px; font-size: 17px; }
+.grading-rubric-modal p, .grading-rubric-modal li { font-size: 14px; line-height: 1.55; }
+.grading-rubric-modal ul, .grading-rubric-modal ol { margin: 8px 0 0; padding-left: 20px; }
+.grading-rubric-modal li + li { margin-top: 6px; }
+.grading-rubric-grades { display: grid; gap: 10px; margin: 0; }
+.grading-rubric-grades > div { display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: start; }
+.grading-rubric-grades dt { margin: 0; font-weight: 800; }
+.grading-rubric-grades dd { margin: 0; color: var(--muted); }
+.grading-rubric-steps { margin: 8px 0 0; }
+.grading-rubric-table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 10px; margin-top: 10px; }
+.grading-rubric-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.grading-rubric-table th, .grading-rubric-table td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.grading-rubric-table thead th { background: #f4f7fb; }
+.grading-rubric-table tbody th { font-weight: 700; white-space: nowrap; }
 
 /* Parcel report assistant */
 .parcel-chat-card { margin-top: 6px; padding-top: 16px; border-top: 1px solid var(--line); }
@@ -940,4 +985,4 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   .parcel-chat-fields { grid-template-columns: 1fr; }
   .parcel-chat-checkbox { grid-column: auto; }
 }
-@media print { .report-rail, .report-actions, .report-top-nav { display: none; } .report-page { background: #fff; } .report-layout { display: block; } .report-details { break-inside: avoid; } }
+@media print { .report-rail, .report-actions, .report-top-nav, .grading-rubric-backdrop { display: none; } .report-page { background: #fff; } .report-layout { display: block; } .report-details { break-inside: avoid; } }

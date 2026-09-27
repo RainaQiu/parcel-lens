@@ -7,7 +7,8 @@ import { combineScreeningRag } from './rag'
 import { deriveReviewTasks } from './tasks'
 import type { EvidenceGap, ScreeningScorecard } from './types'
 
-const requiredSources = ['slope', 'landslide', 'undermined', 'fema', 'historicDistrict', 'historicSite', 'violations', 'condemned'] as const
+export const SCREENING_SCORE_VERSION = 'LDES-v3-screening-scorecard' as const
+export const REQUIRED_SCREENING_SOURCES = ['slope', 'landslide', 'undermined', 'fema', 'historicDistrict', 'historicSite', 'violations', 'condemned'] as const
 const unassessed = [
   'Project housing use, size, and proposed construction location',
   'Land control and availability',
@@ -28,7 +29,7 @@ export function scoreScreeningParcel(selected: SelectedParcel): ScreeningScoreca
   const mapped = observeMappedConstraints(evidence)
   const evidenceGaps: EvidenceGap[] = [...pathway.gaps, ...mapped.gaps]
   const requiredSourceCoverage: Record<string, boolean> = {}
-  for (const id of requiredSources) {
+  for (const id of REQUIRED_SCREENING_SOURCES) {
     const source = evidence.sources?.[id]
     requiredSourceCoverage[id] = complete(source) && !mapped.constraints.some((constraint) => constraint.id === id && constraint.status === 'UNKNOWN')
     if (!requiredSourceCoverage[id] && !evidenceGaps.some((gap) => gap.id === `${id}-source` || gap.id === `${id}-boundary`)) {
@@ -42,7 +43,7 @@ export function scoreScreeningParcel(selected: SelectedParcel): ScreeningScoreca
   const redConstraint = mapped.constraints.some((constraint) => mappedConstraintRag(constraint) === 'RED')
   const screeningRag = combineScreeningRag({ identityVerified, pathway: pathway.status,
     requiredSourcesComplete: Object.values(requiredSourceCoverage).every(Boolean), tasks: reviewTasks, redConstraint })
-  return { parcelId, scoreVersion: 'LDES-v3-screening-scorecard', screeningRag, projectFeasibility: 'NOT_ASSESSED',
+  return { parcelId, scoreVersion: SCREENING_SCORE_VERSION, screeningRag, projectFeasibility: 'NOT_ASSESSED',
     pathwaySummary: pathway.status, housingPathways: pathway.rows, mappedConstraints: mapped.constraints,
     reviewTasks, evidenceGaps, unassessed: [...unassessed], requiredSourceCoverage,
     ruleVersions: [...new Set(pathway.rows.map((row) => row.ruleVersion).filter(Boolean))].sort() }
