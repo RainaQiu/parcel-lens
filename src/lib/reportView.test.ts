@@ -25,5 +25,6 @@ describe('v3 report model', () => {
     expect(report.pin).toBe('0052P00130000000')
     expect(report.scorecard.parcelId).toBe(report.pin)
     expect(report.scorecard.scoreVersion).toBe('LDES-v3-screening-scorecard')
+    expect('score' in report).toBe(false)
   })
 })

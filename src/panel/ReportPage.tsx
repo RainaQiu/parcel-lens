@@ -96,7 +96,7 @@ export function ReportPage({ pin, cached, saved, onBack, onAdd, onLoaded }: Prop
               <div className="screening-answers">
                 <div><small>Verified housing path</small><p>{shown.pathwayText}</p></div>
                 <div><small>Mapped and record leads</small><p>{triggered.map((task) => task.trigger).join(' ') || 'No additional review task identified in checked sources.'}</p></div>
-                <div><small>First next check</small><p>{shown.topTask?.trigger ?? shown.firstGap?.reason ?? 'Define the proposed project and complete routine due diligence.'}</p></div>
+                <div><small>First next check</small><p>{shown.firstAction}</p></div>
                 <div><small>Still unassessed</small><p>Project location and size, land control, engineering cost, and financial feasibility.</p></div>
               </div>
             </section>

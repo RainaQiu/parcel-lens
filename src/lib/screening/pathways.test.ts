@@ -36,4 +36,11 @@ describe('v3 housing pathway summary', () => {
     expect(result.status).toBe('UNKNOWN')
     expect(result.gaps.length).toBeGreaterThan(0)
   })
+  it('does not use rows verified for a different base district', () => {
+    expect(summarizePathways(evidence(['P', 'A', 'S', 'C', 'NOT_PERMITTED'], { districts: ['R1D-VL'] })).status).toBe('UNKNOWN')
+  })
+  it('accepts an explicit verified written overlay exclusion', () => {
+    expect(summarizePathways(evidence(['P', 'A', 'S', 'C', 'NOT_PERMITTED'], { overlayPresent: true, overlayHandled: true,
+      overlayRulesApplied: false, overlayWrittenExclusion: true })).status).toBe('BY_RIGHT_PATH_IDENTIFIED')
+  })
 })

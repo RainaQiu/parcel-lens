@@ -19,6 +19,12 @@ describe('shared scorecard presentation', () => {
     expect(value.topTask?.trigger).toBe('Slope mapped')
     expect(value.topTask?.sourceRefs).toContain('pgh-slope25')
   })
+  it('prioritizes the missing source for Unrated and planning alternatives for Red', () => {
+    const unrated = screeningPresentation({ ...card('UNRATED'), reviewTasks: [{ id: 'slope', trigger: 'Slope mapped', whyItMatters: 'Check', whoToConsult: 'Planner', sourceRefs: ['slope'], scoreEffect: 'triggered' }],
+      evidenceGaps: [{ id: 'fema', dimension: 'FEMA', reason: 'FEMA query failed', sourceRefs: ['fema'] }] })
+    expect(unrated.firstAction).toContain('FEMA query failed')
+    expect(screeningPresentation({ ...card('RED'), pathwaySummary: 'NO_LISTED_PATH' }).firstAction).toContain('planning staff')
+  })
   it('keeps supplied parcel order and warns about different rule or source coverage', () => {
     const amber = report('A', card('AMBER'))
     const green = report('B', { ...card('GREEN'), requiredSourceCoverage: { fema: false } })

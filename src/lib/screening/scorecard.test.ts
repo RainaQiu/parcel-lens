@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { lookupHousingPathways } from '../housingPathways'
+import cases from '../ldes/fixtures/verified-parcels.json'
 import type { FloodHit, LdesEvidence, OverlapFact, SelectedParcel, SourceObservation } from '../types'
 import { scoreScreeningParcel } from './scorecard'
 
@@ -57,5 +58,24 @@ describe('v3 parcel scorecard', () => {
   })
   it('returns the same grade and facts for identical inputs', () => {
     expect(scoreScreeningParcel(selected())).toEqual(scoreScreeningParcel(selected()))
+  })
+  it.each(cases)('reinterprets observed geospatial facts for $pin under v3 with other required sources confirmed', (item) => {
+    const data = evidence(item.slopePct)
+    data.districts = item.districts
+    data.housingPathways = item.districts.flatMap((district) => lookupHousingPathways([district]))
+    data.sources!.landslide = obs(fact(item.landslidePct))
+    data.sources!.undermined = obs(fact(item.underminedPct))
+    const result = scoreScreeningParcel(selected(item.pin, data))
+    const expected = item.districts.length > 1 ? 'UNRATED' : item.slopePct || item.landslidePct || item.underminedPct ? 'AMBER' : 'GREEN'
+    expect(result.screeningRag).toBe(expected)
+  })
+  it('does not quietly turn an uncertain floodway sliver into Green', () => {
+    const data = evidence(0)
+    data.sources!.fema = obs([{ category: 'FLOODWAY', overlapPct: 0.05, intersectionAreaSqft: 5 }])
+    const result = scoreScreeningParcel(selected(pin, data))
+    expect(result.mappedConstraints.find((item) => item.id === 'fema')).toMatchObject({ status: 'UNKNOWN', boundaryUncertain: true, category: 'FLOODWAY' })
+    expect(result.screeningRag).toBe('UNRATED')
+    expect(result.evidenceGaps.map((gap) => gap.id)).toContain('fema-boundary')
+    expect(result.evidenceGaps.map((gap) => gap.id)).not.toContain('fema-source')
   })
 })

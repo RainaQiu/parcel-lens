@@ -19,7 +19,7 @@ describe('bounded deterministic copy', () => {
   it('keeps Amber map overlap distinct from project impact', () => {
     const result = buildScreeningFallback({ ...card('AMBER'), reviewTasks: [{ id: 'mapped-slope', trigger: '25%+ slope map overlaps the parcel.',
       whyItMatters: 'Project impact is unknown.', whoToConsult: 'Planner', sourceRefs: ['slope'], scoreEffect: 'triggered' }] })
-    expect(result).toContain('project impact is unknown')
+    expect(result).toContain('. Project impact is unknown')
     expect(result).not.toMatch(/whole parcel affected|permit denied/i)
   })
   it('names missing evidence for Unrated', () => {

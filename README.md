@@ -1,13 +1,13 @@
 # Parcel Lens
 
-Pittsburgh parcel screening prototype. Search by a 16-character county PIN, choose an address candidate, or click a map parcel. The map shows a short preview; a full report opens at `/parcels/:pin`. Add up to four verified parcel IDs to a local saved list and compare them at `/compare?pins=...`. The browser retrieves the connected public sources and calculates LDES v2.3 deterministically. No advanced options or hidden unit-count scenario are required.
+Pittsburgh parcel screening prototype. Search by a 16-character county PIN, choose an address candidate, or click a map parcel. The map shows a short preview; a full report opens at `/parcels/:pin`. Add up to four verified parcel IDs to a local saved list and compare them at `/compare?pins=...`. The browser retrieves the connected public sources and calculates the **LDES v3 preliminary screening RAG** deterministically. No advanced options or hidden unit-count scenario are required.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Try public PIN `0052G00030000000` (5051 Castleman St). A row-level `NOT_PERMITTED` and a parcel-level GREEN can coexist because the five housing uses are screened separately. PIN `0051N00300000000` is split-zoned and stays UNRATED. The report uses `LDES-v2.3-parcel-screen`.
+Try public PIN `0052P00130000000` (5000 Forbes Ave). It has an EMI residential use listing, but a mapped 25%+ slope overlap makes the preliminary screen AMBER for a targeted location check. The report keeps project impact and financial feasibility unassessed. PIN `0051N00300000000` is split-zoned and stays UNRATED. The report uses `LDES-v3-screening-scorecard`.
 
 Address example: `2633 fifth avenue` and `2633 5th ave` both return five distinct `2633 5TH AVE` parcel candidates. Choose the intended parcel ID; the app will not silently choose one address match. Common suffixes, numbered street names, and nearby typos are candidate-search aids, not proof of parcel identity.
 
@@ -21,11 +21,11 @@ npm run lint
 
 The source boundary PIN is the canonical parcel ID. County assessment data provides the address and property facts; Pittsburgh GIS zoning is spatially clipped to the parcel and joined to the verified §911.02 use table. GIS layers for 25% slope, landslide-prone areas, undermined land, FEMA NFHL flood hazards, city/PASDA historic areas, and WPRDC violations/condemned records are queried automatically. Each report distinguishes available, no matching record, and unavailable sources. Source update dates are shown only when known; retrieval time is separate.
 
-The headline is a scoped suitability screen. It does not evaluate unit capacity, setbacks, height/FAR, parking, access, permits, professional geotechnical or floodplain determinations, or financial feasibility. Development potential remains UNRATED. Four public [regression parcels](docs/verification/real-parcel-cases.md) show the current rule boundaries.
+The headline is a scoped residential zoning and site screen. RED means none of the five checked housing uses has a verified listed path; mapped overlap percentage alone cannot make a parcel RED. It does not evaluate unit capacity, setbacks, height/FAR, parking, access, permits, professional geotechnical or floodplain determinations, land availability, costs, or financial feasibility. Project feasibility is `NOT_ASSESSED`. See the [v3 rule and review cases](docs/LDES_v3_screening_scorecard.md).
 
 ## Product documents
 
-Start here: **[docs/README.md](docs/README.md)** (index), **[LDES v2.3 parcel screening](docs/LDES_v2.3_parcel_screen.md)** (live spec), and the [PRD](docs/Track1_Data_Assessment_and_PRD.md).
+Start here: **[docs/README.md](docs/README.md)** (index), **[LDES v3 preliminary scorecard](docs/LDES_v3_screening_scorecard.md)** (live spec), and the [PRD](docs/Track1_Data_Assessment_and_PRD.md).
 
 - [Team collaboration guide](CONTRIBUTING.md)
 - [LDES v2.1 rubric (historical)](docs/Development_Ease_Score.md)
@@ -40,6 +40,6 @@ The browser requests relative `/api/*` URLs. Vite proxies public data during `np
 
 Copy `.env.example` to `.env` and fill `LLM_API_KEY` **only after the API provider and deployment are ready**. `.env` is ignored by Git. The server reads it at startup, so restart the process after changing it. Do not put the key in a `VITE_` variable; those variables are exposed to browser bundles. With no key, an exhausted budget, a provider error, an invalid response, or a timeout, the full report still shows a deterministic plain-language summary and original evidence.
 
-The template defaults to OpenCode Go's OpenAI-compatible `chat/completions` endpoint with `glm-5.3-flash`. Its [documentation](https://opencode.ai/docs/go/#endpoints) lists that model and endpoint, but also describes Go as intended for coding-agent traffic. Confirm that your account is permitted to use it for end-user parcel explanations before enabling the key. The `LLM_BASE_URL` and `LLM_MODEL` variables make the adapter replaceable with another compatible provider.
+The template defaults to OpenCode Go's OpenAI-compatible `chat/completions` endpoint with `deepseek-v4.1-flash`. A real `5000 Forbes Ave` report returned a validated explanation in local testing with `LLM_MAX_OUTPUT_TOKENS=2500`. The cap includes the provider's internal reasoning tokens, so it is not the length of the text shown to the user. The [OpenCode Go documentation](https://opencode.ai/docs/go/#endpoints) lists the model and endpoint, and describes Go as intended for coding-agent traffic; check that your account permits end-user parcel explanations before enabling the key. `LLM_BASE_URL` and `LLM_MODEL` let the adapter use another compatible provider.
 
-The service sends only score drivers, missing-evidence labels, rule versions, and source identifiers/values. It does not send owner or mailing records. The model cannot change the score; outputs with unknown driver IDs, unknown gaps, or new numeric claims are rejected. Requests are limited per IP and per day, and successful explanations are cached against their fact payload.
+The service sends only v3 grade, pathway status, mapped observations, review tasks, evidence gaps, and rule/source identifiers. It does not send owner or mailing records. The model cannot change the grade; outputs with unknown task IDs, unknown gaps, unsupported approval claims, or new numeric claims are rejected. Requests are limited per IP and per day, and successful explanations are cached against their fact payload.

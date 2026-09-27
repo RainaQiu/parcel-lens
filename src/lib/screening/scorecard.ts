@@ -29,8 +29,8 @@ export function scoreScreeningParcel(selected: SelectedParcel): ScreeningScoreca
   const requiredSourceCoverage: Record<string, boolean> = {}
   for (const id of requiredSources) {
     const source = evidence.sources?.[id]
-    requiredSourceCoverage[id] = complete(source)
-    if (!requiredSourceCoverage[id] && !evidenceGaps.some((gap) => gap.id === `${id}-source`)) {
+    requiredSourceCoverage[id] = complete(source) && !mapped.constraints.some((constraint) => constraint.id === id && constraint.status === 'UNKNOWN')
+    if (!requiredSourceCoverage[id] && !evidenceGaps.some((gap) => gap.id === `${id}-source` || gap.id === `${id}-boundary`)) {
       evidenceGaps.push({ id: `${id}-source`, dimension: id, reason: source?.nAReason || `${id} source is unavailable.`,
         sourceRefs: [source?.sourceId ?? id] })
     }

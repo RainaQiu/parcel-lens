@@ -1,4 +1,4 @@
-import { effectiveOverlap } from '../ldes/geometry'
+import { effectiveOverlap, isSliver } from '../ldes/geometry'
 import type { FloodCategory, FloodHit, LdesEvidence, OverlapFact, SourceObservation } from '../types'
 import type { EvidenceGap, MappedConstraint } from './types'
 
@@ -30,7 +30,14 @@ export function observeMappedConstraints(evidence: LdesEvidence): { constraints:
     if (source.status === 'not_found') return { ...base, status: 'NOT_DETECTED' }
     if (id === 'fema') {
       const hits = (source.value as FloodHit[]).filter((hit) => hit.overlapPct > 0 && hit.intersectionAreaSqft > 0)
-      const strongest = [...hits].sort((a, b) => floodRank[b.category] - floodRank[a.category])[0]
+      const effective = hits.filter((hit) => !isSliver(hit.overlapPct, hit.intersectionAreaSqft))
+      const strongest = [...effective].sort((a, b) => floodRank[b.category] - floodRank[a.category])[0]
+      if (!strongest && hits.length) {
+        const uncertain = [...hits].sort((a, b) => floodRank[b.category] - floodRank[a.category])[0]
+        gaps.push({ id: 'fema-boundary', dimension: label, reason: 'A tiny FEMA polygon intersection needs boundary verification.', sourceRefs: [source.sourceId] })
+        return { ...base, status: 'UNKNOWN', category: uncertain.category, overlapPct: uncertain.overlapPct,
+          intersectionAreaSqft: uncertain.intersectionAreaSqft, boundaryUncertain: true }
+      }
       if (!strongest) return { ...base, status: 'NOT_DETECTED' }
       return { ...base, status: 'DETECTED', category: strongest.category, overlapPct: strongest.overlapPct,
         intersectionAreaSqft: strongest.intersectionAreaSqft, projectImpact: 'UNKNOWN' }

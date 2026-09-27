@@ -14,6 +14,6 @@ export function buildScreeningFallback(scorecard: ScreeningScorecard): string {
   if (scorecard.screeningRag === 'RED') return `${head} This finding is limited to the five checked residential uses; it does not assess all development possibilities. Project feasibility is not assessed.`
   if (scorecard.screeningRag === 'UNRATED') return `${head} Missing evidence: ${scorecard.evidenceGaps[0]?.reason ?? 'required source facts'}. Verified facts remain available below. Project feasibility is not assessed.`
   const task = scorecard.reviewTasks.find((item) => item.scoreEffect === 'triggered')
-  if (task) return `${head} First check: ${task.trigger} ${task.whyItMatters.charAt(0).toLowerCase()}${task.whyItMatters.slice(1)} Project feasibility is not assessed.`
+  if (task) return `${head} First check: ${task.trigger} ${task.whyItMatters} Project feasibility is not assessed.`
   return `${head} Project size, location, land control, engineering cost, and financial feasibility are not assessed.`
 }
