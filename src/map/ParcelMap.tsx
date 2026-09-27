@@ -1,4 +1,5 @@
-import { Map, NavigationControl, type FilterSpecification, type GeoJSONSource, type MapGeoJSONFeature, type StyleSpecification } from 'maplibre-gl'
+import { Map, NavigationControl, config, type FilterSpecification, type GeoJSONSource, type MapGeoJSONFeature, type StyleSpecification } from 'maplibre-gl'
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import {
   forwardRef,
   useEffect,
@@ -9,6 +10,8 @@ import {
 import { fetchParcelByPin, fetchParcelsInBbox, featureCentroid } from '../lib/arcgis'
 import type { ParcelFeature } from '../lib/types'
 import { ALL_ZONING_LABELS, fetchZoningMap, ZONING_FILL_COLOR, ZONING_LEGEND, zoningCodesForLabels } from '../lib/zoning'
+
+config.WORKER_URL = maplibreWorkerUrl
 
 const MIN_ZOOM = 16
 const MAP_VIEW_KEY = 'parcel-lens:map-view:v1'
