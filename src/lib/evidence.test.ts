@@ -1,11 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { observeQuery, sourceObservation } from './evidence'
 import { collectLdesLayers } from './ldes'
+import { clearLayerUpdatedAtCache } from './gis'
 import { scoreInputs } from './ldes'
 import { scoreEvidence } from './score'
 import type { ParcelFeature } from './types'
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  clearLayerUpdatedAtCache()
+})
 
 describe('source observations', () => {
   const source = { sourceId: 'slope', sourceUrl: 'https://example.org/layer', sourceUpdatedAt: null, joinMethod: 'polygon_clip' as const }
@@ -28,6 +32,9 @@ describe('source observations', () => {
   it('keeps successful zoning and other source facts when slope service fails', async () => {
     const feature: ParcelFeature = { type: 'Feature', properties: { PIN: '0052G00030000000', MUNICODE: 107 }, geometry: { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] } }
     vi.stubGlobal('fetch', vi.fn().mockImplementation(async (input: string) => {
+      if (input.includes('PGHWebLandslideProne') && input.includes('f=json')) {
+        return { ok: true, json: async () => ({ editingInfo: { lastEditDate: Date.UTC(2024, 5, 8) } }) }
+      }
       if (input.includes('PGHWebSlope25')) throw new Error('slope timeout')
       if (input.includes('/api/ckan/')) return { ok: true, json: async () => ({ result: { records: [] } }) }
       const features = input.includes('PGHWebZoning') ? [{ properties: { zon_new: 'R1D-VL' }, geometry: feature.geometry }] : []
@@ -36,7 +43,7 @@ describe('source observations', () => {
     const layers = await collectLdesLayers(feature, null)
     const result = scoreEvidence(scoreInputs(feature, null, layers))
     expect(layers.sources?.slope).toMatchObject({ status: 'unavailable', value: null, nAReason: 'slope timeout' })
-    expect(layers.sources?.landslide).toMatchObject({ status: 'available', value: { overlapPct: 0 } })
+    expect(layers.sources?.landslide).toMatchObject({ status: 'available', value: { overlapPct: 0 }, sourceUpdatedAt: '2024-06-08T00:00:00.000Z' })
     expect(result.zoningRag).toBe('GREEN')
     expect(result.environmentalGeotechnicalRag).toBe('UNRATED')
     expect(result.easeScore).toBe('UNRATED')
