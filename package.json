@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "lint": "oxlint",
+    "evaluate:chat": "node scripts/evaluate-parcel-chat.mjs",
     "preview": "vite preview",
     "start": "node server/index.mjs"
   },
