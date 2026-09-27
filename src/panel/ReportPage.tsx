@@ -80,7 +80,7 @@ export function ReportPage({ pin, cached, saved, onBack, onAdd, onLoaded }: Prop
   return (
     <main className="report-page">
       <div className="report-shell">
-        <nav className="report-top-nav" aria-label="Report navigation"><button type="button" className="text-button" onClick={onBack}>← Back to map</button><span>Parcel Lens / Full report</span></nav>
+        <nav className="report-top-nav" aria-label="Report navigation"><button type="button" className="text-button" onClick={onBack}>← Back to map</button><span className="report-brand"><img src="/logo-mark.png" alt="" width={22} height={22} />Parcel Lens / Full report</span></nav>
         <header className="report-header">
           <div><p className="eyebrow">Parcel screening report</p><h1>{address.line1}</h1><p>{address.line2} · Parcel ID {report.pin}</p></div>
           <div className="report-actions"><button type="button" onClick={() => onAdd(report.pin)} disabled={saved}>{saved ? '✓ Added to list' : '+ Add to list'}</button><button type="button" onClick={() => window.print()}>Print / Save PDF</button></div>

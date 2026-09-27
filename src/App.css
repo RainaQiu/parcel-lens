@@ -42,14 +42,15 @@ body,
 
 .brand {
   display: flex;
-  flex-direction: column;
-  min-width: 140px;
-  line-height: 1.15;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
 
-.brand span {
-  color: var(--muted);
-  font-size: 12px;
+.brand img {
+  display: block;
+  height: 36px;
+  width: auto;
 }
 
 .search {
@@ -232,13 +233,17 @@ body,
 }
 
 .zoning-legend li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-size: 11px;
   line-height: 1.25;
   color: var(--muted);
   padding: 2px 0;
+}
+
+.zoning-legend li label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
 }
 
 .zoning-legend li span {
@@ -675,6 +680,10 @@ address {
     align-items: stretch;
   }
 
+  .brand {
+    align-self: center;
+  }
+
   .topbar-actions {
     margin-left: 0;
     align-self: flex-end;
@@ -750,6 +759,8 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .report-page, .compare-page { min-height: 100vh; background: #f5f7fb; color: var(--ink); overflow: auto; }
 .report-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 26px 0 80px; }
 .report-top-nav { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 13px; margin-bottom: 30px; }
+.report-brand { display: inline-flex; align-items: center; gap: 8px; }
+.report-brand img { width: 22px; height: 22px; }
 .report-top-nav .text-button { border: 0; background: transparent; padding: 0; color: var(--accent); }
 .report-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
 .report-header h1, .compare-header h1 { margin: 0 0 4px; font-size: clamp(28px, 3vw, 42px); line-height: 1.1; letter-spacing: -.025em; }
