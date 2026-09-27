@@ -27,11 +27,13 @@ export async function loadParcelFeature(
   const layers = await collectLdesLayers(feature, assessment, signal)
   if (signal?.aborted) throw new DOMException('Request aborted', 'AbortError')
   const retrievedAt = new Date().toISOString()
+  const assessmentSourceUrl = 'https://data.wprdc.org/api/3/action/datastore_search?resource_id=65855e14-549e-4992-b5be-d629afc676fa'
+  const assessmentUpdatedAt = (mismatch ? rawAssessment : assessment)?.ASOFDATE ?? null
   layers.sources = {
     ...layers.sources,
     assessment: mismatch
-      ? { status: 'unavailable', value: null, sourceId: 'wprdc-assessment', sourceUrl: 'https://data.wprdc.org/api/3/action/datastore_search?resource_id=65855e14-549e-4992-b5be-d629afc676fa', sourceUpdatedAt: null, retrievedAt, joinMethod: 'parcel_id', nAReason: 'Assessment PARID does not match boundary PIN' }
-      : await observeQuery(assessmentResult.status === 'fulfilled' ? Promise.resolve(assessment) : Promise.reject(assessmentResult.reason), { sourceId: 'wprdc-assessment', sourceUrl: 'https://data.wprdc.org/api/3/action/datastore_search?resource_id=65855e14-549e-4992-b5be-d629afc676fa', sourceUpdatedAt: null, joinMethod: 'parcel_id' }, retrievedAt),
+      ? { status: 'unavailable', value: null, sourceId: 'wprdc-assessment', sourceUrl: assessmentSourceUrl, sourceUpdatedAt: assessmentUpdatedAt, retrievedAt, joinMethod: 'parcel_id', nAReason: 'Assessment PARID does not match boundary PIN' }
+      : await observeQuery(assessmentResult.status === 'fulfilled' ? Promise.resolve(assessment) : Promise.reject(assessmentResult.reason), { sourceId: 'wprdc-assessment', sourceUrl: assessmentSourceUrl, sourceUpdatedAt: assessmentUpdatedAt, joinMethod: 'parcel_id' }, retrievedAt),
   }
   const ldes = scoreInputs(feature, assessment, layers)
   return { feature, assessment, zoning, ldesLayers: layers, ldes }

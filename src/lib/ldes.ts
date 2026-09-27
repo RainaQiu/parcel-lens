@@ -1,5 +1,5 @@
 import { featureCentroid, normalizePin } from './arcgis'
-import { clipOverlap, isClipFact, polygonVerified, queryFema, queryPasdaLayer, queryPghLayer } from './gis'
+import { clipOverlap, fetchLayerUpdatedAt, isClipFact, polygonVerified, queryFema, queryPasdaLayer, queryPghLayer } from './gis'
 import { effectiveOverlap } from './ldes/geometry'
 import { sourceObservation } from './evidence'
 import { applyScenario, splitZoning } from './scenarios'
@@ -155,6 +155,13 @@ export async function collectLdesLayers(
     historicSites,
     violations,
     condemned,
+    zoningUpdatedAt,
+    slopeUpdatedAt,
+    landslideUpdatedAt,
+    underminedUpdatedAt,
+    femaUpdatedAt,
+    historicDistrictUpdatedAt,
+    historicSiteUpdatedAt,
   ] = await Promise.all([
     settled(queryPghLayer('PGHWebZoning', feature, { outFields: 'zon_new,legendtype,full_zoning_type' }, signal)),
     settled(queryPghLayer('PGHWebSlope25', feature, { outFields: 'objectid', returnGeometry: 'true' }, signal)),
@@ -173,6 +180,13 @@ export async function collectLdesLayers(
         ? recordsForPin(CONDEMNED_RESOURCE, pin, ['parcel_id', 'pin', 'PARID'], signal)
         : Promise.resolve([]),
     ),
+    fetchLayerUpdatedAt('/api/pgh/PGHWebZoning?f=json'),
+    fetchLayerUpdatedAt('/api/pgh/PGHWebSlope25?f=json'),
+    fetchLayerUpdatedAt('/api/pgh/PGHWebLandslideProne?f=json'),
+    fetchLayerUpdatedAt('/api/pgh/PGHWebUndermined?f=json'),
+    fetchLayerUpdatedAt('/api/fema?f=json'),
+    fetchLayerUpdatedAt('/api/pgh/PGHWebCHDHistoricDistricts?f=json'),
+    fetchLayerUpdatedAt('/api/pasda/12/?f=json'),
   ])
 
   let zoningCodes =
@@ -182,12 +196,14 @@ export async function collectLdesLayers(
           .filter(Boolean)
       : []
   let zoningFromPoint = false
+  let pointZoningUpdatedAt: string | null = null
   if (zoningCodes.length === 0) {
     const [lng, lat] = featureCentroid(feature)
     const pointZoning = await settled(fetchZoningAt(lng, lat, signal))
     if (pointZoning.ok && pointZoning.value?.code) {
       zoningCodes = [pointZoning.value.code]
       zoningFromPoint = true
+      pointZoningUpdatedAt = pointZoning.value.updatedAt
     }
   }
   const split = splitZoning(zoningCodes)
@@ -201,25 +217,37 @@ export async function collectLdesLayers(
   const historicOk = !historicDistrictClip.failed && !historicSiteClip.failed
   const polyOk = polygonVerified(feature)
 
-  function observation<T>(sourceId: string, sourceUrl: string, joinMethod: SourceObservation<T>['joinMethod'], result: { ok: true; value: T } | { ok: false; reason: string }): SourceObservation<T> {
-    const meta = { sourceId, sourceUrl, sourceUpdatedAt: null, joinMethod }
+  function observation<T>(
+    sourceId: string,
+    sourceUrl: string,
+    joinMethod: SourceObservation<T>['joinMethod'],
+    result: { ok: true; value: T } | { ok: false; reason: string },
+    sourceUpdatedAt: string | null = null,
+  ): SourceObservation<T> {
+    const meta = { sourceId, sourceUrl, sourceUpdatedAt, joinMethod }
     return result.ok ? sourceObservation(meta, result.value, retrievedAt) : { ...meta, status: 'unavailable', value: null, retrievedAt, nAReason: result.reason }
   }
-  function clipped(sourceId: string, sourceUrl: string, query: { ok: true; value: unknown } | { ok: false; reason: string }, fact: { fact?: OverlapFact; failed: boolean }): SourceObservation<OverlapFact> {
-    return observation(sourceId, sourceUrl, 'polygon_clip', fact.fact && !fact.failed ? { ok: true, value: fact.fact } : { ok: false, reason: query.ok ? 'Polygon intersection could not be calculated' : query.reason })
+  function clipped(
+    sourceId: string,
+    sourceUrl: string,
+    query: { ok: true; value: unknown } | { ok: false; reason: string },
+    fact: { fact?: OverlapFact; failed: boolean },
+    sourceUpdatedAt: string | null,
+  ): SourceObservation<OverlapFact> {
+    return observation(sourceId, sourceUrl, 'polygon_clip', fact.fact && !fact.failed ? { ok: true, value: fact.fact } : { ok: false, reason: query.ok ? 'Polygon intersection could not be calculated' : query.reason }, sourceUpdatedAt)
   }
   function records(sourceId: string, resourceId: string, result: { ok: true; value: Array<Record<string, unknown>> } | { ok: false; reason: string }): SourceObservation<number> {
     const source = observation(sourceId, `${WPRDC_BASE}${resourceId}`, 'parcel_id', result.ok ? { ok: true, value: result.value.length } : result)
     return source.status === 'available' && source.value === 0 ? { ...source, status: 'not_found', value: null, nAReason: 'No matching record' } : source
   }
   const sources = {
-    zoning: observation('pgh-zoning', `${PGH_BASE}/PGHWebZoning/FeatureServer/0`, zoningFromPoint ? 'point_lookup' : 'polygon_clip', zoning.ok || zoningFromPoint ? { ok: true, value: zoningCodes } : { ok: false, reason: zoning.reason }),
-    slope: clipped('pgh-slope25', `${PGH_BASE}/PGHWebSlope25/FeatureServer/0`, slope, slopeClip),
-    landslide: clipped('pgh-landslide', `${PGH_BASE}/PGHWebLandslideProne/FeatureServer/0`, landslide, slideClip),
-    undermined: clipped('pgh-undermined', `${PGH_BASE}/PGHWebUndermined/FeatureServer/0`, undermined, mineClip),
-    fema: observation('fema-nfhl', 'https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28', 'polygon_clip', flood.failed ? { ok: false, reason: fema.ok ? 'FEMA polygon intersection could not be calculated' : fema.reason } : { ok: true, value: flood.hits }),
-    historicDistrict: clipped('pgh-historic-district', `${PGH_BASE}/PGHWebCHDHistoricDistricts/FeatureServer/0`, historicDistricts, historicDistrictClip),
-    historicSite: clipped('pasda-historic-site', 'https://mapservices.pasda.psu.edu/server/rest/services/pasda/PittsburghCity/MapServer/12', historicSites, historicSiteClip),
+    zoning: observation('pgh-zoning', `${PGH_BASE}/PGHWebZoning/FeatureServer/0`, zoningFromPoint ? 'point_lookup' : 'polygon_clip', zoning.ok || zoningFromPoint ? { ok: true, value: zoningCodes } : { ok: false, reason: zoning.reason }, zoningUpdatedAt ?? pointZoningUpdatedAt),
+    slope: clipped('pgh-slope25', `${PGH_BASE}/PGHWebSlope25/FeatureServer/0`, slope, slopeClip, slopeUpdatedAt),
+    landslide: clipped('pgh-landslide', `${PGH_BASE}/PGHWebLandslideProne/FeatureServer/0`, landslide, slideClip, landslideUpdatedAt),
+    undermined: clipped('pgh-undermined', `${PGH_BASE}/PGHWebUndermined/FeatureServer/0`, undermined, mineClip, underminedUpdatedAt),
+    fema: observation('fema-nfhl', 'https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28', 'polygon_clip', flood.failed ? { ok: false, reason: fema.ok ? 'FEMA polygon intersection could not be calculated' : fema.reason } : { ok: true, value: flood.hits }, femaUpdatedAt),
+    historicDistrict: clipped('pgh-historic-district', `${PGH_BASE}/PGHWebCHDHistoricDistricts/FeatureServer/0`, historicDistricts, historicDistrictClip, historicDistrictUpdatedAt),
+    historicSite: clipped('pasda-historic-site', 'https://mapservices.pasda.psu.edu/server/rest/services/pasda/PittsburghCity/MapServer/12', historicSites, historicSiteClip, historicSiteUpdatedAt),
     violations: records('wprdc-violations', VIOLATIONS_RESOURCE, violations),
     condemned: records('wprdc-condemned', CONDEMNED_RESOURCE, condemned),
   }

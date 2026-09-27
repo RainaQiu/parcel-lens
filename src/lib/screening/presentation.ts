@@ -41,6 +41,5 @@ export function comparisonRows(reports: ParcelReport[]): { reports: ParcelReport
     { label: 'Project feasibility', value: () => 'Not assessed' },
     { label: 'Rule version', value: (r) => `${r.scorecard.scoreVersion} · ${r.scorecard.ruleVersions.join(', ') || 'No verified use table'}` },
     { label: 'Source coverage', value: (r) => Object.entries(r.scorecard.requiredSourceCoverage).filter(([, okay]) => !okay).map(([source]) => source).join(', ') || 'All required sources available' },
-    { label: 'Data retrieved', value: (r) => r.selected.ldes?.retrievedAt ? new Date(r.selected.ldes.retrievedAt).toLocaleString() : 'Not provided' },
   ] }
 }
