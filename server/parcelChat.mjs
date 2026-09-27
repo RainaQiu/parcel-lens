@@ -1,6 +1,7 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { buildParcelChatPrompt, deterministicParcelAnswer, getOfficialReferenceVersion, lookupZoningReference, PARCEL_CHAT_SYSTEM_PROMPT, validateParcelChatOutput, validateParcelChatRequest } from './parcelChatCore.mjs'
+import { buildParcelChatPrompt, deterministicParcelAnswer, getOfficialReferenceVersion, lookupZoningReference, PARCEL_CHAT_SYSTEM_PROMPT, validateParcelChatOutput, validateParcelChatRequest, validateStreamedAnswerPrefix } from './parcelChatCore.mjs'
+import { streamModelCompletion } from './openAiStream.mjs'
 
 if (existsSync('.env')) process.loadEnvFile('.env')
 
@@ -14,6 +15,16 @@ const MAX_BODY = 96 * 1024
 function send(res, status, value) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
   res.end(JSON.stringify(value))
+}
+
+function sendStreamHeaders(res) {
+  res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-store, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' })
+  res.flushHeaders?.()
+}
+
+function sendStreamEvent(res, event, value) {
+  if (res.writableEnded) return
+  res.write(`event: ${event}\ndata: ${JSON.stringify(value)}\n\n`)
 }
 
 async function readJson(req) {
@@ -98,6 +109,61 @@ function fallbackResponse(request, reason = null, webSearch = { available: false
   return { ...answer, fallback: true, fallbackReason: reason, webSearch: { ...webSearch, used: false } }
 }
 
+function officialReferencesFor(request) {
+  const question = [...request.messages].reverse().find((message) => message.role === 'user')?.content ?? ''
+  const referenceResult = lookupZoningReference(question, request.reportFacts)
+  return referenceResult ? [referenceResult] : []
+}
+
+function streamingRequested(req) {
+  return String(req.headers.accept ?? '').includes('text/event-stream') && process.env.LLM_CHAT_STREAMING_ENABLED !== 'false'
+}
+
+async function streamParcelChatResponse(req, res, request, sessionId, fallback, searchResults, webSearch) {
+  sendStreamHeaders(res)
+  const requestId = randomUUID()
+  sendStreamEvent(res, 'start', { requestId, promptVersion: 'parcel-chat-v2' })
+  const finish = (event, value) => { sendStreamEvent(res, event, value); if (!res.writableEnded) res.end() }
+  const llmEnabled = process.env.LLM_CHAT_ENABLED !== 'false' && Boolean(process.env.LLM_API_KEY)
+  if (!llmEnabled) { finish('fallback', fallback); return }
+  const key = cacheKey(request, searchResults)
+  const cached = cache.get(key)
+  if (cached && Date.now() - cached.time < CACHE_MS) { finish('complete', { ...cached.value, cached: true, webSearch }); return }
+  if (!withinDailyBudget(new Date().toISOString().slice(0, 10))) { finish('fallback', { ...fallback, fallbackReason: 'Daily chat budget reached' }); return }
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), configuredNumber('LLM_TIMEOUT_MS', 60000, 3000, 90000))
+  let clientClosed = false
+  const onClose = () => { if (!req.complete) { clientClosed = true; controller.abort() } }
+  req.on('close', onClose)
+  try {
+    const officialReferences = officialReferencesFor(request)
+    const prompt = buildParcelChatPrompt(request, officialReferences, searchResults, { maxTurns: configuredNumber('LLM_CHAT_MAX_TURNS', 8, 1, 8) })
+    let answer = ''
+    let policyFailure = false
+    const result = await streamModelCompletion(prompt, sessionId, controller.signal, (delta) => {
+      if (clientClosed || policyFailure) return
+      try {
+        validateStreamedAnswerPrefix(`${answer}${delta}`, request, searchResults, officialReferences)
+        answer += delta
+        sendStreamEvent(res, 'delta', { text: delta })
+      } catch { policyFailure = true }
+    }, { systemPrompt: PARCEL_CHAT_SYSTEM_PROMPT })
+    if (clientClosed) return
+    if (policyFailure) { finish('fallback', fallbackResponse(request, 'AI response failed source validation; showing the source-based answer.', webSearch)); return }
+    const value = validateParcelChatOutput(result.raw, request, searchResults, officialReferences)
+    const response = { ...value, fallback: false, webSearch }
+    if (cache.size > 200) cache.delete(cache.keys().next().value)
+    cache.set(key, { time: Date.now(), value: response })
+    finish('complete', response)
+  } catch {
+    if (!clientClosed) finish('fallback', fallbackResponse(request, 'AI response unavailable; showing the source-based answer.', webSearch))
+  } finally {
+    clearTimeout(timeout)
+    req.off('close', onClose)
+  }
+}
+
 export function resetParcelChatState() {
   cache.clear(); minuteBuckets.clear(); sessionBuckets.clear(); dailyBuckets.clear()
 }
@@ -125,6 +191,7 @@ export async function handleParcelChatRequest(req, res) {
   }
 
   const fallback = fallbackResponse(request, null, webSearch)
+  if (streamingRequested(req)) { await streamParcelChatResponse(req, res, request, sessionId, fallback, searchResults, webSearch); return }
   const llmEnabled = process.env.LLM_CHAT_ENABLED !== 'false' && Boolean(process.env.LLM_API_KEY)
   if (!llmEnabled) { send(res, 200, fallback); return }
   const key = cacheKey(request, searchResults)
@@ -132,8 +199,7 @@ export async function handleParcelChatRequest(req, res) {
   if (cached && Date.now() - cached.time < CACHE_MS) { send(res, 200, { ...cached.value, cached: true, webSearch }); return }
   if (!withinDailyBudget(new Date().toISOString().slice(0, 10))) { send(res, 200, { ...fallback, fallbackReason: 'Daily chat budget reached' }); return }
   try {
-    const referenceResult = lookupZoningReference([...request.messages].reverse().find((message) => message.role === 'user')?.content ?? '', request.reportFacts)
-    const officialReferences = referenceResult ? [referenceResult] : []
+    const officialReferences = officialReferencesFor(request)
     const raw = await modelCompletion(buildParcelChatPrompt(request, officialReferences, searchResults, { maxTurns: configuredNumber('LLM_CHAT_MAX_TURNS', 8, 1, 8) }), sessionId)
     const value = validateParcelChatOutput(raw, request, searchResults, officialReferences)
     const response = { ...value, fallback: false, webSearch }

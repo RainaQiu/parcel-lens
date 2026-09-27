@@ -6,7 +6,7 @@ let server
 let provider
 
 beforeEach(() => {
-  for (const key of ['LLM_API_KEY', 'LLM_BASE_URL', 'LLM_ENABLED', 'LLM_CHAT_ENABLED', 'LLM_MODEL', 'LLM_CHAT_MAX_OUTPUT_TOKENS', 'LLM_CHAT_PER_SESSION_LIMIT', 'LLM_CHAT_DAILY_REQUEST_LIMIT', 'WEB_SEARCH_ENABLED', 'WEB_SEARCH_PROVIDER', 'TAVILY_API_KEY', 'WEB_SEARCH_BASE_URL']) delete process.env[key]
+  for (const key of ['LLM_API_KEY', 'LLM_BASE_URL', 'LLM_ENABLED', 'LLM_CHAT_ENABLED', 'LLM_CHAT_STREAMING_ENABLED', 'LLM_MODEL', 'LLM_CHAT_MAX_OUTPUT_TOKENS', 'LLM_CHAT_MAX_TURNS', 'LLM_CHAT_PER_SESSION_LIMIT', 'LLM_CHAT_DAILY_REQUEST_LIMIT', 'WEB_SEARCH_ENABLED', 'WEB_SEARCH_PROVIDER', 'TAVILY_API_KEY', 'WEB_SEARCH_BASE_URL']) delete process.env[key]
 })
 
 const context = {
@@ -25,7 +25,7 @@ const payload = (question = 'Why is this parcel Amber?') => ({ pin: context.pin,
   messages: [{ role: 'user', content: question }], allowWebSearch: false })
 
 afterEach(async () => {
-  for (const key of ['LLM_API_KEY', 'LLM_BASE_URL', 'LLM_ENABLED', 'LLM_CHAT_ENABLED', 'LLM_MODEL', 'LLM_CHAT_MAX_OUTPUT_TOKENS', 'LLM_CHAT_PER_SESSION_LIMIT', 'LLM_CHAT_DAILY_REQUEST_LIMIT', 'WEB_SEARCH_ENABLED', 'WEB_SEARCH_PROVIDER', 'TAVILY_API_KEY', 'WEB_SEARCH_BASE_URL']) delete process.env[key]
+  for (const key of ['LLM_API_KEY', 'LLM_BASE_URL', 'LLM_ENABLED', 'LLM_CHAT_ENABLED', 'LLM_CHAT_STREAMING_ENABLED', 'LLM_MODEL', 'LLM_CHAT_MAX_OUTPUT_TOKENS', 'LLM_CHAT_MAX_TURNS', 'LLM_CHAT_PER_SESSION_LIMIT', 'LLM_CHAT_DAILY_REQUEST_LIMIT', 'WEB_SEARCH_ENABLED', 'WEB_SEARCH_PROVIDER', 'TAVILY_API_KEY', 'WEB_SEARCH_BASE_URL']) delete process.env[key]
   resetParcelChatState()
   if (server) await new Promise((resolve) => server.close(resolve))
   if (provider) await new Promise((resolve) => provider.close(resolve))
@@ -101,5 +101,49 @@ describe('parcel chat API', () => {
     const result = await response.json()
     expect(result.fallback).toBe(true)
     expect(result.webSearch.available).toBe(false)
+  })
+
+  it('streams validated answer deltas and completes with the structured response', async () => {
+    const answer = JSON.stringify({ mode: 'fact', answer: 'The parcel is AMBER because the mapped slope requires review.', projectCheck: null, citations: [{ sourceId: 'pgh-slope25', reportSection: 'drivers', kind: 'report' }], missingInputs: [], suggestedQuestions: [] })
+    provider = createServer((req, res) => {
+      req.resume(); req.on('end', () => {
+        res.writeHead(200, { 'Content-Type': 'text/event-stream' })
+        for (const fragment of [answer.slice(0, 42), answer.slice(42)]) res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: fragment } }] })}\n\n`)
+        res.end('data: [DONE]\n\n')
+      })
+    })
+    await new Promise((resolve) => provider.listen(0, '127.0.0.1', resolve))
+    process.env.LLM_API_KEY = 'test-only'; process.env.LLM_CHAT_ENABLED = 'true'; process.env.LLM_CHAT_STREAMING_ENABLED = 'true'; process.env.LLM_BASE_URL = `http://127.0.0.1:${provider.address().port}/v1`
+    const response = await fetch(await endpoint(), { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', 'x-parcel-chat-session': 'stream-session' }, body: JSON.stringify(payload()) })
+    const body = await response.text()
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toContain('text/event-stream')
+    expect(body).toContain('event: start')
+    expect(body).toContain('event: delta')
+    expect(body).toContain('event: complete')
+    expect(body).not.toContain('event: fallback')
+  })
+
+  it('replaces invalid streamed output with a deterministic fallback event', async () => {
+    provider = createServer((req, res) => {
+      req.resume(); req.on('end', () => {
+        res.writeHead(200, { 'Content-Type': 'text/event-stream' })
+        res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '{"mode":"fact","answer":"The parcel is AMBER.' } }] })}\n\n`)
+        res.end('data: [DONE]\n\n')
+      })
+    })
+    await new Promise((resolve) => provider.listen(0, '127.0.0.1', resolve))
+    process.env.LLM_API_KEY = 'test-only'; process.env.LLM_CHAT_ENABLED = 'true'; process.env.LLM_CHAT_STREAMING_ENABLED = 'true'; process.env.LLM_BASE_URL = `http://127.0.0.1:${provider.address().port}/v1`
+    const response = await fetch(await endpoint(), { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', 'x-parcel-chat-session': 'invalid-stream-session' }, body: JSON.stringify(payload()) })
+    const body = await response.text()
+    expect(body).toContain('event: fallback')
+    expect(body).toContain('The parcel is AMBER')
+  })
+
+  it('returns an immediate fallback event when streaming has no configured model key', async () => {
+    const response = await fetch(await endpoint(), { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', 'x-parcel-chat-session': 'no-key-stream' }, body: JSON.stringify(payload()) })
+    const body = await response.text()
+    expect(body).toContain('event: start')
+    expect(body).toContain('event: fallback')
   })
 })

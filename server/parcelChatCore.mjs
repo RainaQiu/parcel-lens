@@ -187,6 +187,15 @@ function validateCitation(citation, context, searchResults, officialReferences =
   return { sourceId: citation.sourceId, reportSection: text(citation.reportSection, 120), kind: 'web', url: result.url, title: result.title, retrievedAt: result.retrievedAt, provider: result.provider }
 }
 
+export function validateStreamedAnswerPrefix(prose, request, searchResults = [], officialReferences = []) {
+  assert(typeof prose === 'string' && prose.length <= 1600, 'Invalid streamed answer')
+  assert(!forbiddenClaim.test(prose), 'Unsupported feasibility claim')
+  for (const grade of grades) if (grade !== request.reportFacts.screeningRag && new RegExp(`\\b${grade}\\b`, 'i').test(prose)) throw new Error('Changed screening grade')
+  const knownNumbers = numbersIn(JSON.stringify({ request, searchResults, officialReferences }))
+  for (const number of numbersIn(prose)) assert(knownNumbers.has(number), 'Unverified numeric claim')
+  return true
+}
+
 export function validateParcelChatOutput(raw, request, searchResults = [], officialReferences = []) {
   let output
   try { output = typeof raw === 'string' ? JSON.parse(raw.trim().replace(/^```(?:json)?\s*|\s*```$/g, '')) : raw } catch { throw new Error('Invalid chat response') }
