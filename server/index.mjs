@@ -2,6 +2,7 @@ import { createServer } from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
 import { resolve, sep, extname } from 'node:path'
 import { handleExplanationRequest } from './explanations.mjs'
+import { handleParcelChatRequest } from './parcelChat.mjs'
 
 const root = resolve('dist')
 const port = Number(process.env.PORT) || 4173
@@ -65,6 +66,7 @@ createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`)
     if (url.pathname === '/api/explanations') { await handleExplanationRequest(req, res); return }
+    if (url.pathname === '/api/parcel-chat') { await handleParcelChatRequest(req, res); return }
     if (url.pathname.startsWith('/api/')) { if (!await proxy(req, res, url)) { res.writeHead(404); res.end() }; return }
     await serve(req, res, url)
   } catch { if (!res.headersSent) res.writeHead(500); res.end() }
