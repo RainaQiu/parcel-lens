@@ -68,79 +68,251 @@ export type SearchHit = {
   MUNIDESC?: string | null
 }
 
-export type SelectedParcel = {
-  feature: ParcelFeature
-  assessment: AssessmentRow | null
-  zoning: ZoningInfo | null
-  ldes?: LdesEvidence
-}
+export type HousingScenarioId = 'sf-1' | 'duplex-2' | 'fourplex-4' | 'multi-8'
 
-export type Barrier = {
-  id: string
-  severity: 'low' | 'medium' | 'high'
-  title: string
-  detail: string
-  penalty: number
-  source: { name: string; field: string; value: string }
-}
+export type Rag = 'GREEN' | 'AMBER' | 'RED' | 'UNRATED'
 
-export type ParcelScore = {
-  score: number | null
-  band: 'easier' | 'mixed' | 'harder' | 'unrated'
-  barriers: Barrier[]
-  unscored: string[]
-  scoreVersion: 'LDES-v2.0'
-  scoreStatus: 'ASSESSED' | 'INSUFFICIENT_DATA'
-  suitabilityScore: number | null
-  suitabilityBand: SuitabilityBand
-  developmentPotentialBand: DevelopmentPotentialBand
-  overallResult: OverallResult | null
-  availabilityStatus: 'NOT_ASSESSED'
-  financialFeasibilityStatus: 'NOT_ASSESSED'
-  deliveryTimingStatus: 'NOT_ASSESSED'
-  missingRequired: string[]
-  assumptions: string[]
-}
+export type EvidenceConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'NOT_RATED'
 
-export type SuitabilityBand = 'green' | 'amber' | 'red' | 'unrated'
+export type ScoringMethod = 'RAG'
 
-export type DevelopmentPotentialBand = 'green' | 'amber' | 'red' | 'unknown'
+export type ScoreVersion = 'LDES-v2.2-rag'
+
+export type GeometryMethod = 'TRUE_POLYGON_CLIP' | 'BBOX' | 'CENTROID'
+
+export type AssessmentGeometryType = 'DEVELOPMENT_ENVELOPE' | 'PARCEL'
+
+export type ParcelGeometryKind = 'POLYGON' | 'CENTROID_ONLY' | 'BBOX'
+
+export type CriticalFlag =
+  | 'USE_VARIANCE_REQUIRED'
+  | 'REGULATORY_FLOODWAY_AFFECTS_SITE'
+  | 'ACTIVE_CONDEMNED_STATUS'
+  | 'MULTIPLE_GEOTECHNICAL_HAZARDS'
+  | 'MAJORITY_STEEP_SLOPE'
+  | 'SCENARIO_CAPACITY_SHORTFALL'
+  | 'MULTIPLE_BASE_ZONING_DISTRICTS'
+  | 'UNRESOLVED_GEOMETRY_BOUNDARY'
 
 export type OverallResult =
-  | 'CURRENTLY_UNSUITABLE'
+  | 'CURRENT_SCENARIO_REQUIRES_VARIANCE'
   | 'SELECTED_SCENARIO_DOES_NOT_FIT'
   | 'NEEDS_FURTHER_EVIDENCE'
   | 'STRONG_CANDIDATE'
   | 'CANDIDATE_WITH_CONDITIONS'
   | 'MAJOR_CONSTRAINTS'
 
-export type ZoningScenarioPath = 'P' | 'A' | 'S' | 'C' | 'NOT_PERMITTED' | 'UNKNOWN'
+export type ZoningScenarioPath = 'P' | 'A' | 'S' | 'C' | 'NOT_PERMITTED' | 'P_OR_S' | 'UNKNOWN'
 
-export type FloodCategory = 'OUTSIDE' | '0.2_PERCENT' | 'SFHA' | 'FLOODWAY'
+export type PathwaySource = 'verified-use-table' | 'letter-group-heuristic'
 
-/** Optional verified evidence collected by the v2 GIS/rules pipeline. */
-export type LdesEvidence = {
+export type HousingUseType =
+  | 'single_unit_detached'
+  | 'single_unit_attached'
+  | 'two_unit'
+  | 'three_unit'
+  | 'multi_unit'
+
+export type UsePathway = 'P' | 'A' | 'S' | 'C' | 'NOT_PERMITTED' | 'P_OR_S' | 'UNKNOWN'
+
+export type UsePathwayCell = {
+  districtKey: string
+  useType: HousingUseType
+  pathway: UsePathway
+  standards: string[]
+  sourceUrl: string
+  codeAsOf: string
+  ruleVersion: string
+  reviewStatus: 'verified' | 'unverified'
+  verifiedAt: string
+  verifiedBy: string
+}
+
+export type HousingPathwayRow = {
+  useType: HousingUseType
+  useLabel: string
+  rawDistrict: string
+  districtKey: string
+  pathway: UsePathway
+  rag: Rag
+  standards: string[]
+  sourceUrl: string
+  ruleVersion: string
+  reviewStatus: 'verified' | 'unverified'
+  notes: string
+}
+
+export type FloodCategory = 'NONE' | 'OUTSIDE' | 'PCT_0_2' | '0.2_PERCENT' | 'SFHA' | 'FLOODWAY'
+
+export type DriverSource = {
+  name: string
+  field: string
+  value: string
+  url?: string
+  version?: string
+  retrievedAt?: string
+}
+
+export type Barrier = {
+  id: string
+  kind: 'driver' | 'context'
+  factor: string
+  title: string
+  detail: string
+  reason: string
+  nextStep: string
+  observedValue: string
+  rag?: Rag
+  severity: 'low' | 'medium' | 'high' | 'context'
+  source: DriverSource
+}
+
+export type OverlapFact = {
+  overlapPct: number
+  parcelOverlapPct?: number
+  intersectionAreaSqft: number
+  parcelAreaSqft?: number
+  assessmentGeometryType?: AssessmentGeometryType
+  assessmentGeometryArea?: number
+  assessmentOverlapArea?: number
+  assessmentOverlapPct?: number
+  geometryMethod?: GeometryMethod
+  geometryVersion?: string
+}
+
+export type FloodHit = {
+  category: FloodCategory
+  overlapPct: number
+  intersectionAreaSqft: number
+}
+
+export type SelectedParcel = {
+  feature: ParcelFeature
+  assessment: AssessmentRow | null
+  zoning: ZoningInfo | null
+  ldesLayers?: LdesLayerFacts
+  scenarioId?: HousingScenarioId
+  ldes?: LdesEvidence
+}
+
+export type LdesLayerFacts = {
   cityVerified?: boolean
   polygonVerified?: boolean
+  parcelMatchCount?: number
+  parcelGeometry?: ParcelGeometryKind
   allZoningDistrictsVerified?: boolean
+  overlayPresent?: boolean
   overlayHandled?: boolean
-  scenarioPath?: ZoningScenarioPath
-  scenarioId?: string
-  targetUnits?: number
+  overlayRulesApplied?: boolean
+  overlayWrittenExclusion?: boolean
+  overlayDimensionsHandled?: boolean
+  districts?: string[]
+  districtKeys?: string[]
+  overlays?: string[]
+  assessmentGeometryType?: AssessmentGeometryType
+  geometryMethod?: GeometryMethod
+  geometryVersion?: string
+  slope?: OverlapFact
+  landslide?: OverlapFact
+  undermined?: OverlapFact
   slopeOverlapPct?: number
-  landslideIntersects?: boolean
-  underminedIntersects?: boolean
+  landslideOverlapPct?: number
+  underminedOverlapPct?: number
+  floodHits?: FloodHit[]
   floodCategory?: FloodCategory
+  floodOverlapPct?: number
+  floodIntersectionAreaSqft?: number
   environmentalQueriesSuccessful?: boolean
+  femaQueryStatus?: 'OK' | 'FAILED'
   historicQueriesSuccessful?: boolean
+  violationQueryStatus?: 'OK' | 'FAILED'
   historicDistrict?: boolean
   individualHistoricSite?: boolean
+  historicDistrictOverlap?: OverlapFact
+  historicSiteOverlap?: OverlapFact
   activeViolation?: boolean
   activeCondemned?: boolean
+  closedViolationCount?: number
+  closedViolationSummary?: string
+  occupiedImproved?: boolean
+  useDescription?: string
+  classDescription?: string
+  dataAsOf?: string
+  retrievedAt?: string
+}
+
+export type CapacityInputs = {
+  parcelArea?: number
+  hardExclusionArea?: number
+  setbackEnvelopeArea?: number
+  maxLotCoverage?: number
+  maxHeight?: number
+  assumedFloorToFloor?: number
+  zoningStoryCap?: number
+  maxFar?: number
+  parkingArea?: number
+  accessArea?: number
+  requiredOpenSpaceEffect?: number
+  commonCirculationArea?: number
+  assumedGrossAreaPerUnit?: number
+}
+
+export type LdesEvidence = LdesLayerFacts & {
+  parcelId?: string | null
+  scenarioPath?: ZoningScenarioPath
+  districtPathways?: ZoningScenarioPath[]
+  scenarioId?: string
+  targetUnits?: number
+  scenarioSource?: 'PRODUCT_DEFAULT'
+  scenarioUserEditable?: boolean
+  ruleVersion?: string
+  pathwayVerified?: boolean
+  pathwaySource?: PathwaySource
+  zoningOverlap?: OverlapFact & { pathwayIfApplied?: ZoningScenarioPath }
+  housingPathways?: HousingPathwayRow[]
+  districtKeys?: string[]
   potential?: {
-    capacityLowerBound: number
-    capacityUpperBound: number
-    criticalInputsComplete: boolean
+    capacityLowerBound?: number
+    capacityUpperBound?: number
+    criticalInputsComplete?: boolean
+    minLotHeuristicOnly?: boolean
+    missingInputs?: string[]
+    presentInputs?: string[]
     assumptions?: string[]
+    inputs?: CapacityInputs
   }
+}
+
+export type ParcelScore = {
+  scoreVersion: ScoreVersion
+  scoringMethod: ScoringMethod
+  parcelId: string | null
+  scenarioId: 'fourplex-4'
+  ruleVersion: string
+  dataAsOf: string | null
+  assessedAt: string
+  scoreStatus: 'ASSESSED' | 'INSUFFICIENT_DATA'
+  zoningRag: Rag
+  environmentalGeotechnicalRag: Rag
+  historicConditionRag: Rag
+  suitabilityRag: Rag
+  developmentPotentialRag: Rag
+  easeScore: Rag
+  overallResult: OverallResult
+  evidenceConfidence: EvidenceConfidence
+  criticalFlags: CriticalFlag[]
+  drivers: Barrier[]
+  contextDrivers: Barrier[]
+  missingRequired: string[]
+  assumptions: string[]
+  availabilityStatus: 'NOT_ASSESSED'
+  financialFeasibilityStatus: 'NOT_ASSESSED'
+  deliveryTimingStatus: 'NOT_ASSESSED'
+  slopeRag: Rag
+  landslideRag: Rag
+  underminedRag: Rag
+  floodRag: Rag
+  intersectingDistricts: string[]
+  overlays: string[]
+  housingPathways: HousingPathwayRow[]
 }
