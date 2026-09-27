@@ -25,6 +25,11 @@ describe('shared scorecard presentation', () => {
     expect(unrated.firstAction).toContain('FEMA query failed')
     expect(screeningPresentation({ ...card('RED'), pathwaySummary: 'NO_LISTED_PATH' }).firstAction).toContain('planning staff')
   })
+  it('uses the mapped review task as the first action for an environmental Red', () => {
+    const value = screeningPresentation({ ...card('RED'), reviewTasks: [{ id: 'floodway', trigger: 'Floodway overlaps the parcel.',
+      whyItMatters: 'Check project location', whoToConsult: 'Floodplain administrator', sourceRefs: ['fema'], scoreEffect: 'triggered' }] })
+    expect(value.firstAction).toContain('Floodway overlaps')
+  })
   it('keeps supplied parcel order and warns about different rule or source coverage', () => {
     const amber = report('A', card('AMBER'))
     const green = report('B', { ...card('GREEN'), requiredSourceCoverage: { fema: false } })

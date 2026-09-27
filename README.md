@@ -7,7 +7,7 @@ npm install
 npm run dev
 ```
 
-Try public PIN `0052P00130000000` (5000 Forbes Ave). It has an EMI residential use listing, but a mapped 25%+ slope overlap makes the preliminary screen AMBER for a targeted location check. The report keeps project impact and financial feasibility unassessed. PIN `0051N00300000000` is split-zoned and stays UNRATED. The report uses `LDES-v3-screening-scorecard`.
+Try public PIN `0052P00130000000` (5000 Forbes Ave). It has an EMI residential use listing and a 2.208% mapped 25%+ slope overlap, which remains GREEN under the low-overlap screening threshold while keeping project impact visible as unknown. The report keeps financial feasibility unassessed. PIN `0051N00300000000` is split-zoned and stays UNRATED. The report uses `LDES-v3-screening-scorecard`.
 
 Address example: `2633 fifth avenue` and `2633 5th ave` both return five distinct `2633 5TH AVE` parcel candidates. Choose the intended parcel ID; the app will not silently choose one address match. Common suffixes, numbered street names, and nearby typos are candidate-search aids, not proof of parcel identity.
 
