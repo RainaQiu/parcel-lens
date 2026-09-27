@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { fetchParcelByPin, featureCentroid, normalizePin } from './lib/arcgis'
+import { fetchParcelByPin, featureCentroid } from './lib/arcgis'
 import { fetchAssessment, searchAssessments } from './lib/ckan'
 import { collectLdesLayers, scoreInputs } from './lib/ldes'
+import { observeQuery } from './lib/evidence'
+import { assessmentMatchesParcel, isCurrentSelection, resolveSearchSubmission } from './lib/selection'
 import { fetchZoningAt } from './lib/zoning'
 import { ParcelMap, type ParcelMapHandle } from './map/ParcelMap'
 import { loadBlockOrder, saveBlockOrder, type PanelBlockId } from './panel/blockOrder'
@@ -27,6 +29,7 @@ export default function App() {
   const [blockOrder, setBlockOrder] = useState<PanelBlockId[]>(() => loadBlockOrder())
   const [settingsOpen, setSettingsOpen] = useState(false)
   const selectAbort = useRef<AbortController | null>(null)
+  const activeRequestId = useRef(0)
 
   useEffect(() => {
     if (!settingsOpen) return
@@ -71,24 +74,42 @@ export default function App() {
     }
   }, [query])
 
-  async function loadParcel(feature: ParcelFeature) {
+  function beginSelection() {
     selectAbort.current?.abort()
     const controller = new AbortController()
     selectAbort.current = controller
+    activeRequestId.current += 1
+    return { controller, requestId: activeRequestId.current }
+  }
+
+  async function loadParcel(feature: ParcelFeature, request = beginSelection()) {
+    const { controller, requestId } = request
     const pin = feature.properties.PIN ?? ''
+    const current = () => !controller.signal.aborted && isCurrentSelection(requestId, activeRequestId.current, pin, feature.properties.PIN ?? '')
     setSelected({ feature, assessment: null, zoning: null })
     setLoading(true)
     setError(null)
     const [lng, lat] = featureCentroid(feature)
     try {
-      const [assessment, zoning] = await Promise.all([
+      const [assessmentResult, zoningResult] = await Promise.allSettled([
         pin ? fetchAssessment(pin, controller.signal) : Promise.resolve(null),
         fetchZoningAt(lng, lat, controller.signal),
       ])
-      if (controller.signal.aborted) return
+      if (!current()) return
+      const rawAssessment = assessmentResult.status === 'fulfilled' ? assessmentResult.value : null
+      const mismatch = rawAssessment !== null && !assessmentMatchesParcel(rawAssessment.PARID, pin)
+      const assessment = mismatch ? null : rawAssessment
+      const zoning = zoningResult.status === 'fulfilled' ? zoningResult.value : null
       setSelected({ feature, assessment, zoning })
       const layers = await collectLdesLayers(feature, assessment, controller.signal)
-      if (controller.signal.aborted) return
+      if (!current()) return
+      const retrievedAt = new Date().toISOString()
+      layers.sources = {
+        ...layers.sources,
+        assessment: mismatch
+          ? { status: 'unavailable', value: null, sourceId: 'wprdc-assessment', sourceUrl: 'https://data.wprdc.org/api/3/action/datastore_search?resource_id=65855e14-549e-4992-b5be-d629afc676fa', sourceUpdatedAt: null, retrievedAt, joinMethod: 'parcel_id', nAReason: 'Assessment PARID does not match boundary PIN' }
+          : await observeQuery(assessmentResult.status === 'fulfilled' ? Promise.resolve(assessment) : Promise.reject(assessmentResult.reason), { sourceId: 'wprdc-assessment', sourceUrl: 'https://data.wprdc.org/api/3/action/datastore_search?resource_id=65855e14-549e-4992-b5be-d629afc676fa', sourceUpdatedAt: null, joinMethod: 'parcel_id' }, retrievedAt),
+      }
       const ldes = scoreInputs(feature, assessment, layers)
       setSelected({
         feature,
@@ -98,39 +119,39 @@ export default function App() {
         ldes,
       })
     } catch (err) {
-      if (controller.signal.aborted) return
+      if (!current()) return
       setError(err instanceof Error ? err.message : 'Could not load parcel details')
     } finally {
-      if (!controller.signal.aborted) setLoading(false)
+      if (current()) setLoading(false)
     }
   }
 
   async function chooseHit(hit: SearchHit) {
+    const request = beginSelection()
     setQuery('')
     setHits([])
     try {
-      const feature = await fetchParcelByPin(hit.PARID)
+      const feature = await fetchParcelByPin(hit.PARID, request.controller.signal)
+      if (request.controller.signal.aborted || request.requestId !== activeRequestId.current) return
       if (!feature) {
         setError(`No geometry found for ${hit.PARID}`)
         return
       }
       mapRef.current?.flyToFeature(feature)
-      await loadParcel(feature)
+      await loadParcel(feature, request)
     } catch (err) {
+      if (request.controller.signal.aborted || request.requestId !== activeRequestId.current) return
       setError(err instanceof Error ? err.message : 'Could not open parcel')
     }
   }
 
   async function openFromQuery(raw: string) {
-    const trimmed = raw.trim()
-    if (!trimmed) return
-    const compact = trimmed.replace(/[-\s]/g, '')
-    const looksLikePin = /^[0-9A-Z]{10,16}$/i.test(compact)
-    if (looksLikePin) {
-      await chooseHit({ PARID: normalizePin(trimmed) })
+    const submission = resolveSearchSubmission(raw, hits)
+    if (submission.kind === 'pin') {
+      await chooseHit({ PARID: submission.pin })
       return
     }
-    if (hits[0]) await chooseHit(hits[0])
+    if (submission.kind === 'choose_candidate') setSearchError(hits.length ? 'Choose the matching address from the list.' : 'No matching address yet. Try a parcel ID or select a map parcel.')
   }
 
   return (

@@ -174,11 +174,13 @@ export async function collectLdesLayers(
           .map((item) => String(item.properties?.zon_new ?? '').trim())
           .filter(Boolean)
       : []
+  let zoningFromPoint = false
   if (zoningCodes.length === 0) {
     const [lng, lat] = featureCentroid(feature)
     const pointZoning = await settled(fetchZoningAt(lng, lat, signal))
     if (pointZoning.ok && pointZoning.value?.code) {
       zoningCodes = [pointZoning.value.code]
+      zoningFromPoint = true
     }
   }
   const split = splitZoning(zoningCodes)
@@ -204,7 +206,7 @@ export async function collectLdesLayers(
     return source.status === 'available' && source.value === 0 ? { ...source, status: 'not_found', value: null, nAReason: 'No matching record' } : source
   }
   const sources = {
-    zoning: observation('pgh-zoning', `${PGH_BASE}/PGHWebZoning/FeatureServer/0`, 'polygon_clip', zoning.ok ? { ok: true, value: zoningCodes } : { ok: false, reason: zoning.reason }),
+    zoning: observation('pgh-zoning', `${PGH_BASE}/PGHWebZoning/FeatureServer/0`, zoningFromPoint ? 'point_lookup' : 'polygon_clip', zoning.ok || zoningFromPoint ? { ok: true, value: zoningCodes } : { ok: false, reason: zoning.reason }),
     slope: clipped('pgh-slope25', `${PGH_BASE}/PGHWebSlope25/FeatureServer/0`, slope, slopeClip),
     landslide: clipped('pgh-landslide', `${PGH_BASE}/PGHWebLandslideProne/FeatureServer/0`, landslide, slideClip),
     undermined: clipped('pgh-undermined', `${PGH_BASE}/PGHWebUndermined/FeatureServer/0`, undermined, mineClip),
@@ -221,7 +223,7 @@ export async function collectLdesLayers(
     polygonVerified: polyOk,
     parcelMatchCount: 1,
     parcelGeometry: polyOk ? 'POLYGON' : 'CENTROID_ONLY',
-    allZoningDistrictsVerified: split.districts.length + split.overlays.length > 0,
+    allZoningDistrictsVerified: zoning.ok && !zoningFromPoint && split.districts.length + split.overlays.length > 0,
     overlayPresent: split.overlays.length > 0,
     overlayHandled: split.overlays.length === 0,
     overlayRulesApplied: false,
@@ -249,7 +251,7 @@ export async function collectLdesLayers(
     environmentalQueriesSuccessful: envOk,
     femaQueryStatus: flood.failed ? 'FAILED' : 'OK',
     historicQueriesSuccessful: historicOk,
-    violationQueryStatus: violations.ok ? 'OK' : 'FAILED',
+    violationQueryStatus: violations.ok && condemned.ok ? 'OK' : 'FAILED',
     historicDistrict: historicDistrictClip.fact ? effectiveOverlap(historicDistrictClip.fact).overlapPct > 0 : undefined,
     individualHistoricSite: historicSiteClip.fact ? effectiveOverlap(historicSiteClip.fact).overlapPct > 0 : undefined,
     historicDistrictOverlap: historicDistrictClip.fact,

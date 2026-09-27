@@ -69,6 +69,11 @@ export function scoreZoning(evidence: LdesEvidence): {
   const splitVerified = verifiedKeys.size >= 2
   const splitWithoutTable = verifiedRows.length === 0 && (districts.length >= 2 || paths.length >= 2)
 
+  if (evidence.sources?.zoning?.status === 'unavailable' || evidence.allZoningDistrictsVerified === false) {
+    missing.push('verified zoning polygon coverage')
+    return { rag: 'UNRATED', flags, drivers, context, missing }
+  }
+
   if (splitVerified || splitWithoutTable) {
     flags.push('MULTIPLE_BASE_ZONING_DISTRICTS')
     context.push(

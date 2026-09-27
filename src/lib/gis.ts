@@ -97,7 +97,10 @@ async function queryJson(url: string, signal?: AbortSignal): Promise<GisFeatureC
     signal,
   })
   if (!res.ok) throw new Error(`GIS query failed (${res.status})`)
-  return res.json()
+  const payload = await res.json() as GisFeatureCollection & { error?: { message?: string } }
+  if (payload.error) throw new Error(payload.error.message ?? 'GIS service error')
+  if (!Array.isArray(payload.features)) throw new Error('GIS response has no feature collection')
+  return payload
 }
 
 function parcelParams(feature: ParcelFeature, extra: Record<string, string>): URLSearchParams {

@@ -81,5 +81,6 @@ export async function fetchParcelByPin(pin: string, signal?: AbortSignal) {
     resultRecordCount: '1',
   })
   const fc = await queryParcels(params, signal)
-  return (fc.features[0] as ParcelFeature | undefined) ?? null
+  const feature = (fc.features[0] as ParcelFeature | undefined) ?? null
+  return feature?.properties.PIN && normalizePin(feature.properties.PIN) === normalized ? feature : null
 }

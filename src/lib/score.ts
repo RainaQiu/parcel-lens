@@ -17,13 +17,7 @@ import type {
 } from './types'
 
 function parcelId(selected: SelectedParcel, evidence?: LdesEvidence): string | null {
-  return (
-    evidence?.parcelId ??
-    selected.assessment?.PARID ??
-    selected.feature.properties.PIN ??
-    selected.feature.properties.MAPBLOCKLOT ??
-    null
-  )
+  return selected.feature.properties.PIN ?? evidence?.parcelId ?? null
 }
 
 function gateUnrated(evidence: LdesEvidence | undefined): { missing: string[]; confidence: EvidenceConfidence } | null {
