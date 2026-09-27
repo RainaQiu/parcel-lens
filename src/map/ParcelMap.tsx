@@ -1,4 +1,4 @@
-import { Map, NavigationControl, type GeoJSONSource, type MapGeoJSONFeature, type StyleSpecification } from 'maplibre-gl'
+import { Map, NavigationControl, type FilterSpecification, type GeoJSONSource, type MapGeoJSONFeature, type StyleSpecification } from 'maplibre-gl'
 import {
   forwardRef,
   useEffect,
@@ -8,7 +8,7 @@ import {
 } from 'react'
 import { fetchParcelByPin, fetchParcelsInBbox, featureCentroid } from '../lib/arcgis'
 import type { ParcelFeature } from '../lib/types'
-import { fetchZoningMap, ZONING_FILL_COLOR, ZONING_LEGEND } from '../lib/zoning'
+import { ALL_ZONING_LABELS, fetchZoningMap, ZONING_FILL_COLOR, ZONING_LEGEND, zoningCodesForLabels } from '../lib/zoning'
 
 const MIN_ZOOM = 16
 const MAP_VIEW_KEY = 'parcel-lens:map-view:v1'
@@ -77,8 +77,10 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
     const [basemap, setBasemap] = useState<Basemap>('satellite')
     const [zoningVisible, setZoningVisible] = useState(true)
     const [legendOpen, setLegendOpen] = useState(false)
+    const [selectedZoneLabels, setSelectedZoneLabels] = useState<Set<string>>(() => new Set(ALL_ZONING_LABELS))
     const basemapRef = useRef<Basemap>(basemap)
     const zoningVisibleRef = useRef(true)
+    const selectedZoneLabelsRef = useRef(selectedZoneLabels)
     const zoningDataRef = useRef<GeoJSON.FeatureCollection>(EMPTY)
 
     useEffect(() => {
@@ -87,7 +89,8 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
       selectedRef.current = selectedFeature
       basemapRef.current = basemap
       zoningVisibleRef.current = zoningVisible
-    }, [onSelectPin, onZoomChange, selectedFeature, basemap, zoningVisible])
+      selectedZoneLabelsRef.current = selectedZoneLabels
+    }, [onSelectPin, onZoomChange, selectedFeature, basemap, zoningVisible, selectedZoneLabels])
 
     useImperativeHandle(ref, () => ({
       resize() { mapRef.current?.resize() },
@@ -189,6 +192,7 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
         addMapLayers(map, basemapRef.current)
         applyZoning()
         setZoningLayerVisibility(map, zoningVisibleRef.current)
+        setZoningLayerFilter(map, selectedZoneLabelsRef.current)
         applySelected()
         applySaved()
         loadParcels()
@@ -250,6 +254,12 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
       setZoningLayerVisibility(map, zoningVisible)
     }, [zoningVisible])
 
+    useEffect(() => {
+      const map = mapRef.current
+      if (!map?.isStyleLoaded()) return
+      setZoningLayerFilter(map, selectedZoneLabels)
+    }, [selectedZoneLabels])
+
     function switchBasemap(next: Basemap) {
       if (next === basemapRef.current) return
       basemapRef.current = next
@@ -275,14 +285,51 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
               </button>
             </div>
             {legendOpen && (
-              <><label className="legend-layer-switch"><input type="checkbox" checked={zoningVisible} onChange={(event) => setZoningVisible(event.target.checked)} /> Show zoning layer</label><ul>
-                {ZONING_LEGEND.map((item) => (
-                  <li key={item.label}>
-                    <span style={{ background: item.color }} />
-                    {item.label}
-                  </li>
-                ))}
-              </ul></>
+              <>
+                <label className="legend-layer-switch">
+                  <input type="checkbox" checked={zoningVisible} onChange={(event) => setZoningVisible(event.target.checked)} />
+                  Show zoning layer
+                </label>
+                <label className="legend-layer-switch">
+                  <input
+                    type="checkbox"
+                    checked={selectedZoneLabels.size === ALL_ZONING_LABELS.length}
+                    ref={(input) => {
+                      if (input) input.indeterminate = selectedZoneLabels.size > 0 && selectedZoneLabels.size < ALL_ZONING_LABELS.length
+                    }}
+                    onChange={() => {
+                      setSelectedZoneLabels(
+                        selectedZoneLabels.size === ALL_ZONING_LABELS.length
+                          ? new Set()
+                          : new Set(ALL_ZONING_LABELS),
+                      )
+                    }}
+                  />
+                  Select all
+                </label>
+                <ul>
+                  {ZONING_LEGEND.map((item) => (
+                    <li key={item.label}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={selectedZoneLabels.has(item.label)}
+                          onChange={() => {
+                            setSelectedZoneLabels((current) => {
+                              const next = new Set(current)
+                              if (next.has(item.label)) next.delete(item.label)
+                              else next.add(item.label)
+                              return next
+                            })
+                          }}
+                        />
+                        <span style={{ background: item.color }} />
+                        {item.label}
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </aside>
           <div className="basemap-toggle" role="group" aria-label="Map view">
@@ -475,6 +522,19 @@ function setZoningLayerVisibility(map: Map, visible: boolean) {
   if (map.getLayer('zoning-line')) {
     map.setLayoutProperty('zoning-line', 'visibility', visibility)
   }
+}
+
+function setZoningLayerFilter(map: Map, labels: Set<string>) {
+  const filter = zoningFilterForLabels(labels)
+  if (map.getLayer('zoning-fill')) map.setFilter('zoning-fill', filter)
+  if (map.getLayer('zoning-line')) map.setFilter('zoning-line', filter)
+}
+
+function zoningFilterForLabels(labels: Set<string>): FilterSpecification | null {
+  if (labels.size === ALL_ZONING_LABELS.length) return null
+  const codes = zoningCodesForLabels(labels)
+  if (codes.length === 0) return ['literal', false]
+  return ['in', ['get', 'zon_new'], ['literal', codes]]
 }
 
 function bboxOf(feature: ParcelFeature): [[number, number], [number, number]] {
