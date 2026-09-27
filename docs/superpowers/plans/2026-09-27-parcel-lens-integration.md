@@ -16,7 +16,7 @@
 2. 五类住宅用途路径作为**逐项输出**。无用户指定方案时，不把某一类用途的 `NOT_PERMITTED` 写成整块地“需要 use variance”。移除隐藏的 `fourplex-4` 产品默认假设。
 3. 页面主标题为“Parcel screening / 地块初筛”，不称完整项目 Development Ease。建议默认 zoning 摘要规则：同一已核 base district 的五类路径均有结果时，至少一类 `P` 为 GREEN；没有 `P` 但至少一类 `A/S/C/P_OR_S` 为 AMBER；五类均 `NOT_PERMITTED` 为 RED；规则缺失、跨 base district、overlay 未处理为 UNRATED。页面必须解释该颜色仅概括“是否存在已列明的住宅用途路径”，**不判断拟建规模、尺寸、许可或财务**。环境、历史约束维度单独展示，主标取已核维度中最严重的颜色；关键查询失败仍为 UNRATED。
 4. Development potential 因尺寸/停车/access 规则未入库，继续显示 UNRATED，不给容量结论，也不要求用户填写方案。
-5. 不改写用户现有的 `package-lock.json` 工作区改动；执行时用独立工作树和集成分支。只创建供用户审核的 PR，**不替用户合并 `main`**。
+5. 不改写用户现有的 `package-lock.json` 工作区改动；执行时用独立工作树和集成分支。按用户后续指示，**先只做本地审核，不推送、不创建 PR、不合并 `main`**。
 
 ## Global Constraints
 
@@ -113,7 +113,7 @@
 - [ ] **Step 1: 更新 README。** 写明“选一块地即可”、实际接入的数据源、RAG 范围、未评估内容、版本、运行及测试命令；旧版 0–100 文档标历史。
 - [ ] **Step 2: 完成本地浏览器验收和部署需求记录。** 在 `npm run dev` 下用真实 PIN 完成边界、zoning、环境、评分和来源展示；运行 `npm run preview` 记录 Vite 开发代理不随静态产物发布，并将生产所需 `/api/*` 路由写入 `deployment-readiness.md`。若用户已有目标部署平台，再增加目标域名的网络检查；否则部署另行安排。
 - [ ] **Step 3: 最终运行 `npm test`、`npm run build`、`npm run lint`，检查 `git diff`、无密钥/大数据、文档链接及四个真实案例。**
-- [ ] **Step 4: 推送集成分支并准备 PR 给用户审核。** PR 写清变更、验证、数据限制和未解决项；用户自行决定何时合并 `main`。
+- [x] **Step 4: 本地交接供用户审核。** 记录集成分支、工作树路径、验证结果、数据限制和未解决项；用户审核后自行决定是否推送及何时合并 `main`。
 
 ## 明确不在本轮做
 
