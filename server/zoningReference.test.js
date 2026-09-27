@@ -34,6 +34,13 @@ describe('official Pittsburgh zoning reference', () => {
     expect(result.answer).toContain('Single-Unit Detached Residential')
   })
 
+  it('keeps density wording neutral for non-detached districts', () => {
+    const result = lookupZoningReference('What does R2-VL mean?', context)
+    expect(result.answer).toContain('Two-Unit Residential')
+    expect(result.answer).toContain('Very Low-Density')
+    expect(result.answer).not.toContain('detached-residential')
+  })
+
   it('returns null for an unknown code', () => {
     expect(lookupZoningReference('What does ZX9-Q mean?', context)).toBeNull()
   })

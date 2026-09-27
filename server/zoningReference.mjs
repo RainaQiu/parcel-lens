@@ -48,7 +48,7 @@ function textFor(baseCode, densityCode) {
   if (!density) {
     return `${baseCode} means ${base.label}. It is a ${base.kind} in the Pittsburgh zoning framework. The applicable use table, site standards, overlays, and parcel-specific review still determine what a particular project may do.`
   }
-  return `${baseCode}-${densityCode} combines ${baseCode}, ${base.label}, with ${densityCode}, ${density.label}. In plain English, it describes a detached-residential use subdistrict with a very-low-density development designation. The code alone does not confirm project approval; the applicable use table, site standards, overlays, and parcel-specific review still apply.`
+  return `${baseCode}-${densityCode} combines ${baseCode}, ${base.label}, with ${densityCode}, ${density.label}. The density suffix describes the development-density designation associated with that district. The code alone does not confirm project approval; the applicable use table, site standards, overlays, and parcel-specific review still apply.`
 }
 
 export function lookupZoningReference(question, context = {}) {

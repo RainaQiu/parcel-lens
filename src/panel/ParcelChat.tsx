@@ -137,14 +137,23 @@ export function ParcelChat({ report }: Props) {
     node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' })
   }
 
+  function closeAssistant() {
+    abortRef.current?.abort()
+    abortRef.current = null
+    setBusy(false)
+    setStreamingAnswer('')
+    setShowJumpToLatest(false)
+    setOpen(false)
+  }
+
   return <>
     <section className="parcel-chat-card" aria-label="Ask about this parcel">
       <div><p className="eyebrow">Parcel assistant</p><h2>Ask about this parcel</h2><p>Ask questions using verified report facts, or add a housing type, project size, and land-control assumption.</p></div>
       <button type="button" className="primary-button parcel-chat-open" onClick={() => setOpen(true)}>Open assistant</button>
     </section>
-    {open && <div className="parcel-chat-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false) }}>
+    {open && <div className="parcel-chat-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeAssistant() }}>
       <section className={`parcel-chat-drawer${messages.length > 0 ? ' has-conversation' : ''}`} role="dialog" aria-modal="true" aria-labelledby="parcel-chat-title">
-        <header className="parcel-chat-header"><div><p className="eyebrow">Parcel assistant</p><h2 id="parcel-chat-title">Ask about {report.address}</h2></div><div className="parcel-chat-header-actions">{messages.length > 0 && <button type="button" className="parcel-chat-clear" onClick={clearConversation}>Clear</button>}<button type="button" className="parcel-chat-close" onClick={() => setOpen(false)} aria-label="Close assistant">×</button></div></header>
+        <header className="parcel-chat-header"><div><p className="eyebrow">Parcel assistant</p><h2 id="parcel-chat-title">Ask about {report.address}</h2></div><div className="parcel-chat-header-actions">{messages.length > 0 && <button type="button" className="parcel-chat-clear" onClick={clearConversation}>Clear</button>}<button type="button" className="parcel-chat-close" onClick={closeAssistant} aria-label="Close assistant">×</button></div></header>
         {showContext ? <div className="parcel-chat-context">
           <div className="parcel-chat-scope">Scope: the current Parcel Report, connected official sources, and project assumptions you provide. When web research is enabled, external content is marked <b>Web-sourced</b>.</div>
           <details className="parcel-chat-assumptions"><summary>Project assumptions (optional)</summary><div className="parcel-chat-fields">
@@ -160,7 +169,7 @@ export function ParcelChat({ report }: Props) {
         </div> : <div className="parcel-chat-context-collapsed"><span>Report context and settings are hidden</span><button type="button" onClick={() => setShowContext(true)}>Show context and settings</button></div>}
         <div ref={messagesRef} className="parcel-chat-messages" aria-live="polite" onScroll={handleMessagesScroll}>
           {!messages.length && <div className="parcel-chat-welcome"><p><b>Try a question about this parcel.</b></p><div className="parcel-chat-suggestions">{suggestedQuestions.map((item) => <button type="button" key={item} onClick={() => ask(item)}>{item}</button>)}</div></div>}
-          {turns.map((turn, index) => <div className={`parcel-chat-message ${turn.message.role}`} key={`${turn.message.role}-${index}`}><span className="parcel-chat-role">{turn.message.role === 'user' ? 'You' : 'ParcelLens'}</span><p>{turn.message.content}</p>{turn.response && <div className="parcel-chat-citations">{turn.response.citations.map((citation) => citation.kind === 'web' && citation.url ? <a href={citation.url} target="_blank" rel="noreferrer" key={`${citation.sourceId}-${citation.url}`}><b>{citationLabel(citation)}</b>{citation.retrievedAt ? ` · retrieved ${citation.retrievedAt}` : ''} ↗</a> : <a href={`#${citation.reportSection}`} key={`${citation.sourceId}-${citation.reportSection}`} onClick={() => setOpen(false)}>{citationLabel(citation)}</a>)}</div>}</div>)}
+          {turns.map((turn, index) => <div className={`parcel-chat-message ${turn.message.role}`} key={`${turn.message.role}-${index}`}><span className="parcel-chat-role">{turn.message.role === 'user' ? 'You' : 'ParcelLens'}</span><p>{turn.message.content}</p>{turn.response && <div className="parcel-chat-citations">{turn.response.citations.map((citation) => citation.kind === 'web' && citation.url ? <a href={citation.url} target="_blank" rel="noreferrer" key={`${citation.sourceId}-${citation.url}`}><b>{citationLabel(citation)}</b>{citation.retrievedAt ? ` · retrieved ${citation.retrievedAt}` : ''} ↗</a> : <a href={`#${citation.reportSection}`} key={`${citation.sourceId}-${citation.reportSection}`} onClick={closeAssistant}>{citationLabel(citation)}</a>)}</div>}</div>)}
           {busy && <div className="parcel-chat-message assistant parcel-chat-streaming"><span className="parcel-chat-role">ParcelLens</span><p role="status">{streamingAnswer || 'Generating…'}</p><span className="parcel-chat-streaming-label">Generating…</span></div>}
         </div>
         {showJumpToLatest && <button type="button" className="parcel-chat-jump" onClick={jumpToLatest}>Jump to latest</button>}
