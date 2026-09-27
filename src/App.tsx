@@ -152,7 +152,7 @@ export default function App() {
   const searchedAddress = parseAddress(query)
   return <>
     {route.page === 'map' && <div className="app">
-      <header className="topbar"><div className="brand"><strong>Parcel Lens</strong><span>Pittsburgh parcels</span></div>
+      <header className="topbar"><a className="brand" href="/" onClick={(event) => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); navigate('/') }}><img src="/logo.png" alt="Parcel Lens" width={175} height={40} /></a>
         <form className="search" role="search" onSubmit={(event) => { event.preventDefault(); submitQuery() }}>
           <input value={query} onChange={(event) => { setQuery(event.target.value); setHits([]); setActiveHit(-1); setShowMore(false); setSearching(false); setSearchError(null) }} onKeyDown={(event) => { if (event.key === 'ArrowDown' && visibleHits.length) { event.preventDefault(); setActiveHit((index) => Math.min(index + 1, visibleHits.length - 1)) } else if (event.key === 'ArrowUp' && visibleHits.length) { event.preventDefault(); setActiveHit((index) => Math.max(index - 1, 0)) } else if (event.key === 'Escape') { setHits([]); setActiveHit(-1) } }} placeholder="Search address or parcel ID" aria-label="Search address or parcel ID" autoComplete="off" role="combobox" aria-autocomplete="list" aria-expanded={hits.length > 0} aria-controls="parcel-search-results" aria-activedescendant={activeHit >= 0 ? `parcel-option-${activeHit}` : undefined} />
           {searching && <span className="search-status">Searching…</span>}
