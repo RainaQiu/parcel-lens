@@ -1,0 +1,40 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/parcels/:path*",
+      "destination": "https://gisdata.alleghenycounty.us/arcgis/rest/services/OPENDATA/Parcels/MapServer/0/:path*"
+    },
+    {
+      "source": "/api/parcels",
+      "destination": "https://gisdata.alleghenycounty.us/arcgis/rest/services/OPENDATA/Parcels/MapServer/0"
+    },
+    {
+      "source": "/api/zoning/:path*",
+      "destination": "https://services1.arcgis.com/YZCmUqbcsUpOKfj7/arcgis/rest/services/PGHWebZoning/FeatureServer/0/:path*"
+    },
+    {
+      "source": "/api/zoning",
+      "destination": "https://services1.arcgis.com/YZCmUqbcsUpOKfj7/arcgis/rest/services/PGHWebZoning/FeatureServer/0"
+    },
+    {
+      "source": "/api/ckan/:path*",
+      "destination": "https://data.wprdc.org/api/3/action/:path*"
+    },
+    {
+      "source": "/api/pgh/:service/:path*",
+      "destination": "https://services1.arcgis.com/YZCmUqbcsUpOKfj7/arcgis/rest/services/:service/FeatureServer/0/:path*"
+    },
+    {
+      "source": "/api/pasda/:path*",
+      "destination": "https://mapservices.pasda.psu.edu/server/rest/services/pasda/PittsburghCity/MapServer/:path*"
+    },
+    {
+      "source": "/api/fema/:path*",
+      "destination": "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/:path*"
+    },
+    {
+      "source": "/api/fema",
+      "destination": "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28"
+    }
+  ]
+}

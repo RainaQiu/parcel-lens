@@ -64,7 +64,7 @@ async function modelCompletion(prompt) {
 export async function handleExplanationRequest(req, res) {
   if (req.method !== 'POST') { send(res, 405, { error: 'Method not allowed' }); return }
   if (!process.env.LLM_API_KEY || process.env.LLM_ENABLED === 'false') { send(res, 503, { error: 'AI explanation not configured' }); return }
-  const ip = req.socket?.remoteAddress ?? 'local'
+  const ip = String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim() || (req.socket?.remoteAddress ?? 'local')
   if (!allowed(ip)) { send(res, 429, { error: 'Explanation rate limit reached' }); return }
   let input
   try { input = validateExplanationInput(await readJson(req)) } catch { send(res, 400, { error: 'Invalid explanation request' }); return }
