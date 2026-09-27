@@ -85,8 +85,23 @@ export function ReportPage({ pin, cached, saved, onBack, onAdd, onLoaded }: Prop
             <section className="report-summary-card" id="overview">
               <div className="report-summary-heading"><span className={`report-status score-${score.easeScore.toLowerCase()}`}>{score.easeScore === 'UNRATED' ? 'Not enough evidence to rate' : `${score.easeScore} · Parcel screening`}</span><span>Rule {score.scoreVersion}</span></div>
               <h2>What matters first</h2>
-              <p className="report-lead">{explanation?.summary ?? report.fallbackSummary}</p>
-              {explanation ? <p className="ai-label">AI explanation of the verified screening facts</p> : explanationUnavailable ? <p className="fallback-label">AI explanation unavailable; showing the source-based summary.</p> : <p className="fallback-label">Showing the source-based summary.</p>}
+              {explanation ? (
+                <>
+                  <p className="report-lead">{explanation.summary}</p>
+                  <p className="ai-label">AI explanation of the verified screening facts</p>
+                </>
+              ) : explanationUnavailable ? (
+                <>
+                  <p className="report-lead">{report.fallbackSummary}</p>
+                  <p className="fallback-label">AI explanation unavailable; showing the source-based summary.</p>
+                </>
+              ) : (
+                <div className="report-lead-skeleton" role="status" aria-busy="true" aria-label="Writing the AI explanation">
+                  <span className="skeleton-line" />
+                  <span className="skeleton-line" />
+                  <span className="skeleton-line skeleton-line-short" />
+                </div>
+              )}
               <p className="scope-note">This screening describes listed housing pathways and observed parcel constraints. It does not determine permits, project size, financial feasibility, or approval.</p>
             </section>
 

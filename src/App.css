@@ -773,6 +773,11 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .report-status { display: inline-block; border-radius: 8px; background: #f0f4fa; padding: 9px 12px; font-weight: 800; }
 .report-summary-card h2 { margin: 24px 0 10px; font-size: 25px; }
 .report-lead { font-size: clamp(17px, 2vw, 20px); line-height: 1.55; max-width: 68ch; margin: 0; }
+.report-lead-skeleton { display: grid; gap: 10px; max-width: 68ch; margin: 6px 0 0; }
+.skeleton-line { display: block; height: 14px; border-radius: 6px; background: linear-gradient(90deg, #e8eef6 0%, #f7fafc 45%, #e8eef6 90%); background-size: 200% 100%; animation: skeleton-shimmer 1.2s ease-in-out infinite; }
+.skeleton-line-short { width: 62%; }
+@keyframes skeleton-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton-line { animation: none; } }
 .ai-label, .fallback-label { color: var(--muted); font-size: 12px; margin: 14px 0 0; }
 .scope-note { border-left: 3px solid #d97706; background: #fff8ed; color: #8a4b08; font-size: 13px; line-height: 1.5; padding: 10px 14px; margin: 22px 0 0; }
 .report-section { margin-top: 44px; scroll-margin-top: 24px; }
