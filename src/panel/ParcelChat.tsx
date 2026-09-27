@@ -21,11 +21,19 @@ export function ParcelChat({ report }: Props) {
   const [allowWebSearch, setAllowWebSearch] = useState(false)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [showContext, setShowContext] = useState(true)
   const abortRef = useRef<AbortController | null>(null)
+  const messagesRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     return () => abortRef.current?.abort()
   }, [])
+
+  useEffect(() => {
+    const node = messagesRef.current
+    if (!node) return
+    node.scrollTo({ top: node.scrollHeight, behavior: turns.length > 1 ? 'smooth' : 'auto' })
+  }, [turns.length, busy])
 
   function updateBrief(patch: Partial<ProjectBrief>) {
     setProjectBrief((current) => mergeChatProjectBrief(current, patch))
@@ -37,6 +45,7 @@ export function ParcelChat({ report }: Props) {
     const nextMessages = [...messages, { role: 'user' as const, content }]
     setMessages(nextMessages)
     setTurns((current) => [...current, { message: { role: 'user', content } }])
+    setShowContext(false)
     setQuestion('')
     setBusy(true)
     setNotice(null)
@@ -68,27 +77,30 @@ export function ParcelChat({ report }: Props) {
       <button type="button" className="primary-button parcel-chat-open" onClick={() => setOpen(true)}>Open assistant</button>
     </section>
     {open && <div className="parcel-chat-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false) }}>
-      <section className="parcel-chat-drawer" role="dialog" aria-modal="true" aria-labelledby="parcel-chat-title">
+      <section className={`parcel-chat-drawer${messages.length > 0 ? ' has-conversation' : ''}`} role="dialog" aria-modal="true" aria-labelledby="parcel-chat-title">
         <header className="parcel-chat-header"><div><p className="eyebrow">Parcel assistant</p><h2 id="parcel-chat-title">Ask about {report.address}</h2></div><button type="button" className="parcel-chat-close" onClick={() => setOpen(false)} aria-label="Close assistant">×</button></header>
-        <div className="parcel-chat-scope">Scope: the current Parcel Report, connected official sources, and project assumptions you provide. When web research is enabled, external content is marked <b>Web-sourced</b>.</div>
-        <details className="parcel-chat-assumptions"><summary>Project assumptions (optional)</summary><div className="parcel-chat-fields">
-          <label>Housing type<select value={projectBrief.housingType} onChange={(event) => updateBrief({ housingType: event.target.value as ProjectHousingType })}><option value="unknown">Choose later</option><option value="single_detached">Single detached</option><option value="single_attached">Single attached</option><option value="two_unit">Two-unit</option><option value="three_unit">Three-unit</option><option value="multi_unit">Multi-unit</option></select></label>
-          <label>Units<input type="number" min="1" max="10000" value={projectBrief.unitCount ?? ''} onChange={(event) => updateBrief({ unitCount: event.target.value ? Number(event.target.value) : null })} /></label>
-          <label>Stories<input type="number" min="1" max="200" value={projectBrief.stories ?? ''} onChange={(event) => updateBrief({ stories: event.target.value ? Number(event.target.value) : null })} /></label>
-          <label>Footprint sq ft<input type="number" min="1" value={projectBrief.proposedFootprintSqft ?? ''} onChange={(event) => updateBrief({ proposedFootprintSqft: event.target.value ? Number(event.target.value) : null })} /></label>
-          <label>Land control<select value={projectBrief.landControl} onChange={(event) => updateBrief({ landControl: event.target.value as ProjectBrief['landControl'] })}><option value="unknown">Unknown</option><option value="identified">Identified</option><option value="optioned">Optioned</option><option value="owned">Owned</option></select></label>
-          <label className="parcel-chat-checkbox"><input type="checkbox" checked={projectBrief.costAssumptionsProvided} onChange={(event) => updateBrief({ costAssumptionsProvided: event.target.checked })} /> Cost assumptions provided</label>
-        </div></details>
-        <label className="parcel-chat-web-toggle"><input type="checkbox" checked={allowWebSearch} onChange={(event) => setAllowWebSearch(event.target.checked)} /> Allow web research when the report cannot answer</label>
-        <div className="parcel-chat-messages" aria-live="polite">
+        {showContext ? <div className="parcel-chat-context">
+          <div className="parcel-chat-scope">Scope: the current Parcel Report, connected official sources, and project assumptions you provide. When web research is enabled, external content is marked <b>Web-sourced</b>.</div>
+          <details className="parcel-chat-assumptions"><summary>Project assumptions (optional)</summary><div className="parcel-chat-fields">
+            <label>Housing type<select value={projectBrief.housingType} onChange={(event) => updateBrief({ housingType: event.target.value as ProjectHousingType })}><option value="unknown">Choose later</option><option value="single_detached">Single detached</option><option value="single_attached">Single attached</option><option value="two_unit">Two-unit</option><option value="three_unit">Three-unit</option><option value="multi_unit">Multi-unit</option></select></label>
+            <label>Units<input type="number" min="1" max="10000" value={projectBrief.unitCount ?? ''} onChange={(event) => updateBrief({ unitCount: event.target.value ? Number(event.target.value) : null })} /></label>
+            <label>Stories<input type="number" min="1" max="200" value={projectBrief.stories ?? ''} onChange={(event) => updateBrief({ stories: event.target.value ? Number(event.target.value) : null })} /></label>
+            <label>Footprint sq ft<input type="number" min="1" value={projectBrief.proposedFootprintSqft ?? ''} onChange={(event) => updateBrief({ proposedFootprintSqft: event.target.value ? Number(event.target.value) : null })} /></label>
+            <label>Land control<select value={projectBrief.landControl} onChange={(event) => updateBrief({ landControl: event.target.value as ProjectBrief['landControl'] })}><option value="unknown">Unknown</option><option value="identified">Identified</option><option value="optioned">Optioned</option><option value="owned">Owned</option></select></label>
+            <label className="parcel-chat-checkbox"><input type="checkbox" checked={projectBrief.costAssumptionsProvided} onChange={(event) => updateBrief({ costAssumptionsProvided: event.target.checked })} /> Cost assumptions provided</label>
+          </div></details>
+          <label className="parcel-chat-web-toggle"><input type="checkbox" checked={allowWebSearch} onChange={(event) => setAllowWebSearch(event.target.checked)} /> Allow web research when the report cannot answer</label>
+          {messages.length > 0 && <button type="button" className="parcel-chat-context-hide" onClick={() => setShowContext(false)}>Hide context and settings</button>}
+        </div> : <div className="parcel-chat-context-collapsed"><span>Report context and settings are hidden</span><button type="button" onClick={() => setShowContext(true)}>Show context and settings</button></div>}
+        <div ref={messagesRef} className="parcel-chat-messages" aria-live="polite">
           {!messages.length && <div className="parcel-chat-welcome"><p><b>Try a question about this parcel.</b></p><div className="parcel-chat-suggestions">{suggestedQuestions.map((item) => <button type="button" key={item} onClick={() => ask(item)}>{item}</button>)}</div></div>}
           {turns.map((turn, index) => <div className={`parcel-chat-message ${turn.message.role}`} key={`${turn.message.role}-${index}`}><span className="parcel-chat-role">{turn.message.role === 'user' ? 'You' : 'ParcelLens'}</span><p>{turn.message.content}</p>{turn.response && <div className="parcel-chat-citations">{turn.response.citations.map((citation) => citation.kind === 'web' && citation.url ? <a href={citation.url} target="_blank" rel="noreferrer" key={`${citation.sourceId}-${citation.url}`}><b>{citationLabel(citation)}</b>{citation.retrievedAt ? ` · retrieved ${citation.retrievedAt}` : ''} ↗</a> : <a href={`#${citation.reportSection}`} key={`${citation.sourceId}-${citation.reportSection}`} onClick={() => setOpen(false)}>{citationLabel(citation)}</a>)}</div>}</div>)}
           {busy && <div className="parcel-chat-message assistant"><span className="parcel-chat-role">ParcelLens</span><p role="status">Checking the report…</p></div>}
         </div>
-        {messages.length > 0 && <div className="parcel-chat-followups">{suggestedQuestions.map((item) => <button type="button" key={item} onClick={() => ask(item)} disabled={busy}>{item}</button>)}</div>}
+        {messages.length > 0 && <div className="parcel-chat-followups" aria-label="Suggested questions">{suggestedQuestions.map((item) => <button type="button" key={item} onClick={() => ask(item)} disabled={busy}>{item}</button>)}</div>}
         {notice && <p className="parcel-chat-notice" role="status">{notice}</p>}
-        <form className="parcel-chat-form" onSubmit={(event) => { event.preventDefault(); ask() }}><textarea value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask about the score, pathways, constraints, or your project concept…" maxLength={1800} rows={3} aria-label="Ask about this parcel" /><button type="submit" className="primary-button" disabled={busy || !question.trim()}>{busy ? 'Checking…' : 'Ask'}</button></form>
-        <p className="parcel-chat-footnote">This is a preliminary screen. It does not determine permit approval, cost, safety, or financial feasibility.</p>
+        <form className="parcel-chat-form" onSubmit={(event) => { event.preventDefault(); ask() }}><textarea value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask about the score, pathways, constraints, or your project concept…" maxLength={1800} rows={messages.length > 0 ? 2 : 3} aria-label="Ask about this parcel" /><button type="submit" className="primary-button" disabled={busy || !question.trim()}>{busy ? 'Checking…' : 'Ask'}</button></form>
+        <p className="parcel-chat-footnote">Preliminary screen only; not a permit, cost, safety, or financial feasibility determination.</p>
       </section>
     </div>}
   </>
