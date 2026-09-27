@@ -3,7 +3,6 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { fetchParcelByPin, featureCentroid, normalizePin } from './lib/arcgis'
 import { fetchAssessment, searchAssessments } from './lib/ckan'
 import { collectLdesLayers, scoreInputs } from './lib/ldes'
-import { DEFAULT_SCENARIO } from './lib/scenarios'
 import { fetchZoningAt } from './lib/zoning'
 import { ParcelMap, type ParcelMapHandle } from './map/ParcelMap'
 import { loadBlockOrder, saveBlockOrder, type PanelBlockId } from './panel/blockOrder'
@@ -90,13 +89,12 @@ export default function App() {
       setSelected({ feature, assessment, zoning })
       const layers = await collectLdesLayers(feature, assessment, controller.signal)
       if (controller.signal.aborted) return
-      const ldes = scoreInputs(feature, assessment, layers, DEFAULT_SCENARIO)
+      const ldes = scoreInputs(feature, assessment, layers)
       setSelected({
         feature,
         assessment,
         zoning,
         ldesLayers: layers,
-        scenarioId: DEFAULT_SCENARIO,
         ldes,
       })
     } catch (err) {

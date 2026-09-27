@@ -77,7 +77,7 @@ export type EvidenceConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'NOT_RATED'
 
 export type ScoringMethod = 'RAG'
 
-export type ScoreVersion = 'LDES-v2.2-rag'
+export type ScoreVersion = 'LDES-v2.3-parcel-screen'
 
 export type GeometryMethod = 'TRUE_POLYGON_CLIP' | 'BBOX' | 'CENTROID'
 
@@ -102,6 +102,9 @@ export type OverallResult =
   | 'STRONG_CANDIDATE'
   | 'CANDIDATE_WITH_CONDITIONS'
   | 'MAJOR_CONSTRAINTS'
+  | 'SCREENING_PATH_FOUND'
+  | 'SCREENING_REVIEW_REQUIRED'
+  | 'NO_LISTED_HOUSING_PATH'
 
 export type ZoningScenarioPath = 'P' | 'A' | 'S' | 'C' | 'NOT_PERMITTED' | 'P_OR_S' | 'UNKNOWN'
 
@@ -262,7 +265,8 @@ export type LdesEvidence = LdesLayerFacts & {
   parcelId?: string | null
   scenarioPath?: ZoningScenarioPath
   districtPathways?: ZoningScenarioPath[]
-  scenarioId?: string
+  scenarioId?: HousingScenarioId | null
+  useTableRuleVersion?: string
   targetUnits?: number
   scenarioSource?: 'PRODUCT_DEFAULT'
   scenarioUserEditable?: boolean
@@ -288,7 +292,8 @@ export type ParcelScore = {
   scoreVersion: ScoreVersion
   scoringMethod: ScoringMethod
   parcelId: string | null
-  scenarioId: 'fourplex-4'
+  scenarioId: HousingScenarioId | null
+  scope: 'parcel_screening'
   ruleVersion: string
   dataAsOf: string | null
   assessedAt: string

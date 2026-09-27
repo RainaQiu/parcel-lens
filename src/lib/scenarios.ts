@@ -2,13 +2,13 @@ import { lookupHousingPathways, splitZoning } from './housingPathways'
 import { USE_TABLE_RULE_VERSION } from '../data/pittsburgh-use-pathways-v1'
 import type { AssessmentRow, HousingScenarioId, LdesEvidence, LdesLayerFacts, ParcelFeature } from './types'
 
-export const DEFAULT_SCENARIO: HousingScenarioId = 'fourplex-4'
+export const DEFAULT_SCENARIO: null = null
 
 export { splitZoning }
 
 export function applyScenario(
   layers: LdesLayerFacts,
-  _scenarioId: HousingScenarioId = DEFAULT_SCENARIO,
+  _scenarioId: HousingScenarioId | null = DEFAULT_SCENARIO,
   _assessment: AssessmentRow | null,
   _feature: ParcelFeature,
 ): LdesEvidence {
@@ -19,11 +19,8 @@ export function applyScenario(
   const verified = housingPathways.some((row) => row.reviewStatus === 'verified')
   return {
     ...layers,
-    scenarioId: DEFAULT_SCENARIO,
-    targetUnits: 4,
-    scenarioSource: 'PRODUCT_DEFAULT',
-    scenarioUserEditable: false,
-    ruleVersion: USE_TABLE_RULE_VERSION,
+    scenarioId: _scenarioId,
+    useTableRuleVersion: USE_TABLE_RULE_VERSION,
     pathwayVerified: verified,
     pathwaySource: verified ? 'verified-use-table' : 'letter-group-heuristic',
     overlayPresent,

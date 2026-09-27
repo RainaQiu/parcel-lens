@@ -222,7 +222,7 @@ function ScoreCard({ data }: { data: SelectedParcel }) {
   ]
   return (
     <section className="card score-card">
-      <p className="eyebrow">Development Ease Score — LDES-v2.2 RAG</p>
+      <p className="eyebrow">Parcel screening — {result.scoreVersion}</p>
       <div className="score-hero">
         <strong className={`score-numeral score-${result.easeScore.toLowerCase()}`}>{result.easeScore}</strong>
         <div>
@@ -249,6 +249,7 @@ function ScoreCard({ data }: { data: SelectedParcel }) {
         </div>
       </div>
       <HousingPathwayMatrix rows={result.housingPathways} splitZoned={new Set(result.housingPathways.map((row) => row.districtKey)).size >= 2} />
+      <p className="note">The zoning color summarizes whether any of five listed housing use paths is available. It does not assess project size, dimensional rules, permits, or financial feasibility.</p>
       {result.criticalFlags.length > 0 && (
         <p className="note">Flags: {result.criticalFlags.join(', ')}</p>
       )}

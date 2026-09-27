@@ -1,4 +1,4 @@
-import type { Barrier, CriticalFlag, LdesEvidence, Rag, ZoningScenarioPath } from '../types'
+import type { Barrier, CriticalFlag, HousingPathwayRow, LdesEvidence, Rag, ZoningScenarioPath } from '../types'
 import { makeDriver } from './constants'
 import { isSliver } from './geometry'
 
@@ -27,6 +27,14 @@ export function strictestPath(paths: ZoningScenarioPath[]): ZoningScenarioPath {
     if (PATH_RANK[path] > PATH_RANK[worst]) worst = path
   }
   return worst
+}
+
+export function defaultHousingPathwayRag(rows: HousingPathwayRow[]): Rag {
+  if (rows.length !== 5 || rows.some((row) => row.reviewStatus !== 'verified' || row.pathway === 'UNKNOWN')) return 'UNRATED'
+  if (new Set(rows.map((row) => row.useType)).size !== 5) return 'UNRATED'
+  if (rows.some((row) => row.pathway === 'P')) return 'GREEN'
+  if (rows.some((row) => row.pathway !== 'NOT_PERMITTED')) return 'AMBER'
+  return 'RED'
 }
 
 export function overlayHandled(evidence: LdesEvidence): boolean {
@@ -100,7 +108,11 @@ export function scoreZoning(evidence: LdesEvidence): {
   }
 
   if (verifiedRows.length > 0) {
-    return finishPathway(strictestPath(verifiedRows.map((row) => row.pathway)), flags, drivers, context, missing)
+    const rag = defaultHousingPathwayRag(evidence.housingPathways ?? [])
+    if (rag === 'UNRATED') missing.push('complete verified five-use zoning table')
+    if (rag === 'RED') drivers.push(makeDriver({ id: 'NO_LISTED_HOUSING_PATH', factor: 'housing_pathways', title: 'No listed housing pathway', detail: 'None of the five screened housing uses is listed for this base district.', nextStep: 'Review the zoning use table and confirm any other applicable paths with the city.', observedValue: verifiedRows[0]?.districtKey ?? '', rag, field: 'housingPathways' }))
+    if (rag === 'AMBER') drivers.push(makeDriver({ id: 'ADDITIONAL_USE_REVIEW', factor: 'housing_pathways', title: 'Additional use review', detail: 'At least one screened housing use has an additional review path; none is listed as P.', nextStep: 'Check the applicable use-specific standards and approval path.', observedValue: verifiedRows[0]?.districtKey ?? '', rag, field: 'housingPathways' }))
+    return { rag, flags, drivers, context, missing }
   }
 
   const heuristic = evidence.pathwaySource === 'letter-group-heuristic' || evidence.pathwayVerified === false

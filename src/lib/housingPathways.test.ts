@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { lookupHousingPathways, normalizeDistrictKey, splitZoning } from './housingPathways'
 import { applyScenario } from './scenarios'
 import { scoreEvidence } from './score'
+import { defaultHousingPathwayRag } from './ldes/zoning'
 import type { LdesLayerFacts, ParcelFeature } from './types'
 
 const dummyParcel: ParcelFeature = {
@@ -49,7 +50,7 @@ function scoredDistrict(districts: string[], extra: LdesLayerFacts = {}) {
     activeCondemned: false,
     ...extra,
   }
-  return scoreEvidence(applyScenario(layers, 'fourplex-4', null, dummyParcel), { parcelId: 'test' })
+  return scoreEvidence(applyScenario(layers, null, null, dummyParcel), { parcelId: 'test' })
 }
 
 describe('§911.02 housing pathways', () => {
@@ -92,7 +93,7 @@ describe('§911.02 housing pathways', () => {
     expect(row('R1D-L', 'two_unit')?.notes).toMatch(/Not listed in §911.02/)
   })
 
-  it('colors a single verified district from the strictest pathway and does not veto the headline for missing bulk rules', () => {
+  it('screens all five uses without treating one prohibited use as a parcel variance', () => {
     const unc = scoredDistrict(['UNC'])
     expect(unc.zoningRag).toBe('GREEN')
     expect(unc.developmentPotentialRag).toBe('UNRATED')
@@ -100,9 +101,28 @@ describe('§911.02 housing pathways', () => {
     expect(unc.housingPathways).toHaveLength(5)
 
     const r1d = scoredDistrict(['R1D-L'])
-    expect(r1d.zoningRag).toBe('RED')
-    expect(r1d.easeScore).toBe('RED')
-    expect(r1d.criticalFlags).toContain('USE_VARIANCE_REQUIRED')
+    expect(r1d.zoningRag).toBe('GREEN')
+    expect(r1d.easeScore).toBe('GREEN')
+    expect(r1d.criticalFlags).not.toContain('USE_VARIANCE_REQUIRED')
+    expect(r1d.scenarioId).toBeNull()
+    expect(r1d.scope).toBe('parcel_screening')
+  })
+
+  it('uses amber when no housing use is P but at least one has an extra review path', () => {
+    const result = scoredDistrict(['UI'])
+    expect(result.zoningRag).toBe('AMBER')
+  })
+
+  it('requires all five verified cells and rates five prohibited uses red', () => {
+    const rows = lookupHousingPathways(['R1D-L']).map((item) => ({ ...item, pathway: 'NOT_PERMITTED' as const }))
+    expect(defaultHousingPathwayRag(rows)).toBe('RED')
+    expect(defaultHousingPathwayRag(rows.slice(1))).toBe('UNRATED')
+    expect(defaultHousingPathwayRag([{ ...rows[0], reviewStatus: 'unverified' }, ...rows.slice(1)])).toBe('UNRATED')
+  })
+
+  it('keeps unresolved overlays unrated even when one base use is permitted', () => {
+    const result = scoredDistrict(['R1D-L'], { overlays: ['NDO'] })
+    expect(result.zoningRag).toBe('UNRATED')
   })
 
   it('does not synthesize a zoning chip color for split-zoned parcels', () => {

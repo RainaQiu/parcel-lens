@@ -243,7 +243,7 @@ export function scoreInputs(
   feature: ParcelFeature,
   assessment: AssessmentRow | null,
   layers: LdesLayerFacts,
-  scenarioId: HousingScenarioId = 'fourplex-4',
+  scenarioId: HousingScenarioId | null = null,
 ) {
   return applyScenario(layers, scenarioId, assessment, feature)
 }

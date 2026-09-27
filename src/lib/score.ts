@@ -1,6 +1,6 @@
 /** Deterministic LDES v2.2 RAG scoring. See docs and Ease_Score_Upgrade_and_Test_Cases.md. */
 import { combineEaseScore, worstSuitability } from './ldes/combine'
-import { FIXED_SCENARIO_ID, RULE_VERSION, SCORE_VERSION, uniqueFlags } from './ldes/constants'
+import { RULE_VERSION, SCORE_VERSION, uniqueFlags } from './ldes/constants'
 import { scoreEnvironment } from './ldes/environment'
 import { scoreHistoric } from './ldes/historic'
 import { scorePotential } from './ldes/potential'
@@ -91,13 +91,20 @@ export function scoreEvidence(evidence: LdesEvidence, opts?: { assessedAt?: stri
     developmentPotentialRag: potential.rag,
     useVarianceRequired: flags.includes('USE_VARIANCE_REQUIRED'),
   })
+  const screeningResult = evidence.scenarioId == null
+    ? combined.easeScore === 'GREEN' ? 'SCREENING_PATH_FOUND'
+      : combined.easeScore === 'AMBER' ? 'SCREENING_REVIEW_REQUIRED'
+        : combined.easeScore === 'RED' && zoning.rag === 'RED' ? 'NO_LISTED_HOUSING_PATH'
+          : combined.overallResult
+    : combined.overallResult
   const confidence = gated?.confidence ?? evidenceConfidence(evidence, confidenceMissing, flags)
 
   return {
     scoreVersion: SCORE_VERSION,
     scoringMethod: 'RAG',
     parcelId: id,
-    scenarioId: FIXED_SCENARIO_ID,
+    scenarioId: evidence.scenarioId ?? null,
+    scope: 'parcel_screening',
     ruleVersion: evidence.ruleVersion ?? RULE_VERSION,
     dataAsOf: evidence.dataAsOf ?? null,
     assessedAt,
@@ -108,7 +115,7 @@ export function scoreEvidence(evidence: LdesEvidence, opts?: { assessedAt?: stri
     suitabilityRag,
     developmentPotentialRag: potential.rag,
     easeScore: combined.easeScore,
-    overallResult: combined.overallResult,
+    overallResult: screeningResult,
     evidenceConfidence: confidence,
     criticalFlags: flags,
     drivers,
@@ -143,7 +150,7 @@ export function scoreSummary(result: ParcelScore): string {
     result.developmentPotentialRag === 'UNRATED'
       ? ' Headline uses rated suitability only; development potential is still unrated pending setbacks, coverage, height/FAR, parking, and access. Not a permit.'
       : ''
-  return `${result.overallResult.replaceAll('_', ' ')} — Ease ${result.easeScore}; suitability ${result.suitabilityRag}; potential ${result.developmentPotentialRag}.${extra}${potentialNote}`
+  return `Parcel screening ${result.easeScore}: zoning ${result.zoningRag}, environmental ${result.environmentalGeotechnicalRag}, historic ${result.historicConditionRag}.${extra}${potentialNote}`
 }
 
 export { combineEaseScore } from './ldes/combine'
