@@ -10,6 +10,7 @@ Use this page to fill the final AI Horizons 2026 submission form. The only missi
 | Project title | Parcel Lens |
 | Live app link | https://parcel-lens.jessexu.me/ |
 | Public repository link | https://github.com/RainaQiu/parcel-lens |
+| Data sources list | https://drive.google.com/file/d/1Wt7jxbjZ7AaW9NqhbDwalay16AgWrn_7/view?usp=drive_link |
 | Demo video link | TODO: add the public YouTube or viewable video link after recording |
 | Team name | TODO: fill final team name |
 | Team members | TODO: fill all member names, emails, and schools or organizations |
@@ -86,6 +87,6 @@ If we continued building Parcel Lens, we would validate the scorecard with local
 | 3-5 minute demo video link | TODO |
 | Live app URL | Ready |
 | Public repository URL | Ready |
-| Data sources list | Ready |
+| Data sources list | Ready: https://drive.google.com/file/d/1Wt7jxbjZ7AaW9NqhbDwalay16AgWrn_7/view?usp=drive_link |
 | AI tool disclosure | Ready |
 | Over 18 attestation | Confirm before submit |

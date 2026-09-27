@@ -10,6 +10,7 @@ Search by a 16-character county PIN, choose an address candidate, or click a map
 - **Track:** Development Feasibility & Pro Forma Navigator / Track 1 Policy to Permit
 - **Live app:** <https://parcel-lens.jessexu.me/>
 - **Repository:** <https://github.com/RainaQiu/parcel-lens>
+- **Data sources list:** [public Google Drive file](https://drive.google.com/file/d/1Wt7jxbjZ7AaW9NqhbDwalay16AgWrn_7/view?usp=drive_link) and [repo CSV](docs/data_sources_used.csv)
 - **Demo video:** to be added before submission
 - **Submission checklist:** [docs/SUBMISSION_CHECKLIST.md](docs/SUBMISSION_CHECKLIST.md)
 
