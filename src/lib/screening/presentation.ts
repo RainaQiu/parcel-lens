@@ -1,13 +1,16 @@
 import type { ParcelReport } from '../reportView'
 import { screeningMeaning } from './copy'
+import { mappedConstraintRag } from './hazards'
 import type { ScreeningScorecard } from './types'
 
 export function screeningPresentation(scorecard: ScreeningScorecard) {
   const topTask = scorecard.reviewTasks.find((task) => task.scoreEffect === 'triggered')
+  const redConstraint = scorecard.mappedConstraints.find((item) => mappedConstraintRag(item) === 'RED')
+  const redTask = redConstraint ? scorecard.reviewTasks.find((task) => task.id === `mapped-${redConstraint.id}`) : undefined
   const firstGap = scorecard.evidenceGaps[0]
   const firstAction = scorecard.screeningRag === 'UNRATED' ? (firstGap?.reason ?? 'Verify parcel identity and required sources.')
-    : scorecard.screeningRag === 'RED' ? 'Ask planning staff to verify alternative paths beyond the five checked residential uses.'
-      : topTask?.trigger ?? 'Define the proposed project and complete routine due diligence.'
+    : scorecard.screeningRag === 'RED' && scorecard.pathwaySummary === 'NO_LISTED_PATH' ? 'Ask planning staff to verify alternative paths beyond the five checked residential uses.'
+      : redTask?.trigger ?? topTask?.trigger ?? 'Define the proposed project and complete routine due diligence.'
   return {
     gradeText: scorecard.screeningRag === 'UNRATED' ? 'UNRATED · Evidence incomplete' : `${scorecard.screeningRag} · ${screeningMeaning(scorecard.screeningRag)}`,
     pathwayText: {

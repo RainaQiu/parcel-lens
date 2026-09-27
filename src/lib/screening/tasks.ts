@@ -1,4 +1,5 @@
 import type { LdesEvidence } from '../types'
+import { mappedConstraintRag } from './hazards'
 import type { EvidenceGap, MappedConstraint, PathwaySummary, ReviewTask } from './types'
 
 const sourceFor = (item: MappedConstraint) => item.source ? [item.source.sourceId] : [item.id]
@@ -21,6 +22,7 @@ export function deriveReviewTasks(
   for (const item of constraints) {
     if (item.status !== 'DETECTED') continue
     const floodway = item.id === 'fema' && item.category === 'FLOODWAY'
+    const scoreEffect = mappedConstraintRag(item) === 'GREEN' ? 'routine' : 'triggered'
     add({
       id: `mapped-${item.id}`,
       trigger: floodway ? 'FEMA regulatory floodway overlaps the parcel.' : `${item.label} map overlaps the parcel.`,
@@ -30,7 +32,7 @@ export function deriveReviewTasks(
       whoToConsult: item.id === 'slope' || item.id === 'landslide' || item.id === 'undermined'
         ? 'Pittsburgh planning staff and a surveyor or geotechnical professional'
         : item.id === 'fema' ? 'Local floodplain administrator' : 'Pittsburgh historic preservation staff',
-      sourceRefs: sourceFor(item), scoreEffect: 'triggered',
+      sourceRefs: sourceFor(item), scoreEffect,
     })
   }
 
