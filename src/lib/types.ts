@@ -155,6 +155,32 @@ export type DriverSource = {
   url?: string
   version?: string
   retrievedAt?: string
+  sourceUpdatedAt?: string | null
+  joinMethod?: string
+}
+
+export type SourceObservation<T> = {
+  status: 'available' | 'not_found' | 'unavailable'
+  value: T | null
+  sourceId: string
+  sourceUrl: string
+  sourceUpdatedAt: string | null
+  retrievedAt: string
+  joinMethod: 'polygon_clip' | 'parcel_id' | 'point_lookup'
+  nAReason: string | null
+}
+
+export type SourceObservations = {
+  zoning?: SourceObservation<string[]>
+  slope?: SourceObservation<OverlapFact>
+  landslide?: SourceObservation<OverlapFact>
+  undermined?: SourceObservation<OverlapFact>
+  fema?: SourceObservation<FloodHit[]>
+  historicDistrict?: SourceObservation<OverlapFact>
+  historicSite?: SourceObservation<OverlapFact>
+  violations?: SourceObservation<number>
+  condemned?: SourceObservation<number>
+  assessment?: SourceObservation<AssessmentRow>
 }
 
 export type Barrier = {
@@ -200,6 +226,7 @@ export type SelectedParcel = {
 }
 
 export type LdesLayerFacts = {
+  sources?: SourceObservations
   cityVerified?: boolean
   polygonVerified?: boolean
   parcelMatchCount?: number

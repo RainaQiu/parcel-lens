@@ -13,6 +13,7 @@ import type {
   ParcelScore,
   Rag,
   SelectedParcel,
+  SourceObservation,
 } from './types'
 
 function parcelId(selected: SelectedParcel, evidence?: LdesEvidence): string | null {
@@ -83,8 +84,28 @@ export function scoreEvidence(evidence: LdesEvidence, opts?: { assessedAt?: stri
   ]
   const confidenceMissing = [...(gated?.missing ?? []), ...zoning.missing, ...env.missing, ...historic.missing]
   const flags = uniqueFlags([...zoning.flags, ...env.flags, ...historic.flags, ...potential.flags])
-  const drivers = [...zoning.drivers, ...env.drivers, ...historic.drivers, ...potential.drivers]
-  const contextDrivers = [...zoning.context, ...env.context, ...historic.context]
+  const sourceForField: Record<string, SourceObservation<unknown> | undefined> = {
+    housingPathways: evidence.sources?.zoning,
+    scenarioPath: evidence.sources?.zoning,
+    districts: evidence.sources?.zoning,
+    slopeOverlapPct: evidence.sources?.slope,
+    landslideOverlapPct: evidence.sources?.landslide,
+    underminedOverlapPct: evidence.sources?.undermined,
+    floodCategory: evidence.sources?.fema,
+    flood_overlap_pct: evidence.sources?.fema,
+    historicDistrict: evidence.sources?.historicDistrict,
+    historicDistrictOverlap: evidence.sources?.historicDistrict,
+    individualHistoricSite: evidence.sources?.historicSite,
+    activeViolation: evidence.sources?.violations,
+    activeCondemned: evidence.sources?.condemned,
+    closedViolationCount: evidence.sources?.violations,
+  }
+  const attachSource = (barrier: Barrier): Barrier => {
+    const source = sourceForField[barrier.source.field]
+    return source ? { ...barrier, source: { ...barrier.source, name: source.sourceId, url: source.sourceUrl, sourceUpdatedAt: source.sourceUpdatedAt, retrievedAt: source.retrievedAt, joinMethod: source.joinMethod } } : barrier
+  }
+  const drivers = [...zoning.drivers, ...env.drivers, ...historic.drivers, ...potential.drivers].map(attachSource)
+  const contextDrivers = [...zoning.context, ...env.context, ...historic.context].map(attachSource)
   const suitabilityRag = worstSuitability([zoning.rag, env.rag, historic.rag])
   const combined = combineEaseScore({
     suitabilityRag,

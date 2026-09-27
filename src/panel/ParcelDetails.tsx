@@ -9,7 +9,7 @@ import {
   siteAddress,
 } from '../lib/format'
 import { scoreParcel, scoreSummary } from '../lib/score'
-import type { Barrier, HousingPathwayRow, SelectedParcel } from '../lib/types'
+import type { Barrier, HousingPathwayRow, SelectedParcel, SourceObservation, SourceObservations } from '../lib/types'
 import { type PanelBlockId } from './blockOrder'
 import { ExpandIcon, ShrinkIcon } from '../ui/icons'
 
@@ -253,9 +253,9 @@ function ScoreCard({ data }: { data: SelectedParcel }) {
       {result.criticalFlags.length > 0 && (
         <p className="note">Flags: {result.criticalFlags.join(', ')}</p>
       )}
-      {result.easeScore === 'UNRATED' && result.missingRequired.length > 0 && (
+      {result.missingRequired.length > 0 && (
         <>
-          <p className="subhead">Why this is unrated</p>
+          <p className="subhead">Unassessed or missing inputs</p>
           <ul className="barrier-list">
             {result.missingRequired.map((item) => (
               <li key={item} className="barrier barrier-high">
@@ -277,9 +277,10 @@ function ScoreCard({ data }: { data: SelectedParcel }) {
       )}
       <p className="note">
         Observed: districts {(data.ldes?.districts ?? []).join(', ') || '—'}; slope{' '}
-        {data.ldes?.slopeOverlapPct ?? 0}%; landslide {data.ldes?.landslideOverlapPct ?? 0}%;
-        undermined {data.ldes?.underminedOverlapPct ?? 0}%; flood {data.ldes?.floodCategory ?? 'NONE'}.
+        {data.ldes?.slopeOverlapPct == null ? 'unknown' : `${data.ldes.slopeOverlapPct}%`}; landslide {data.ldes?.landslideOverlapPct == null ? 'unknown' : `${data.ldes.landslideOverlapPct}%`};
+        undermined {data.ldes?.underminedOverlapPct == null ? 'unknown' : `${data.ldes.underminedOverlapPct}%`}; flood {data.ldes?.sources?.fema?.status === 'available' ? data.ldes.floodCategory : 'unknown'}.
       </p>
+      <EvidenceSection sources={data.ldes?.sources} />
       {result.drivers.length > 0 && (
         <>
           <p className="subhead">Drivers</p>
@@ -373,11 +374,34 @@ function BarrierRow({ barrier }: { barrier: Barrier }) {
       <div>
         <strong>{barrier.title}</strong>
         <p>{barrier.detail}</p>
+        <p className="note">Next: {barrier.nextStep}</p>
       </div>
       <span className="source-chip" title={`${barrier.source.field}=${barrier.source.value}`}>
         {barrier.source.name} · {barrier.source.field} · {barrier.source.value}
       </span>
+      {barrier.source.url && <a href={barrier.source.url} target="_blank" rel="noreferrer">Original source</a>}
+      {barrier.source.url && <small>Source updated: {barrier.source.sourceUpdatedAt ?? 'not provided'} · Retrieved: {barrier.source.retrievedAt ?? 'unknown'} · Join: {barrier.source.joinMethod ?? 'unknown'}</small>}
     </li>
+  )
+}
+
+function EvidenceSection({ sources }: { sources?: SourceObservations }) {
+  if (!sources) return <p className="note">Source observations are not available yet.</p>
+  return (
+    <div className="evidence-section">
+      <p className="subhead">Source observations</p>
+      {Object.entries(sources).map(([name, observation]) => {
+        const source = observation as SourceObservation<unknown>
+        return <div key={name} className="field">
+          <span className="label">{name}</span>
+          <div className="value">
+            <strong>{source.status}</strong>{source.nAReason ? ` · ${source.nAReason}` : ''}
+            <div><a href={source.sourceUrl} target="_blank" rel="noreferrer">Original source</a> · {source.joinMethod}</div>
+            <div>Source updated: {source.sourceUpdatedAt ?? 'not provided'} · Retrieved: {source.retrievedAt}</div>
+          </div>
+        </div>
+      })}
+    </div>
   )
 }
 
