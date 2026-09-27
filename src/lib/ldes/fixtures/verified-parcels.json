@@ -1,0 +1,6 @@
+[
+  { "pin": "0052B00098040200", "address": "5 BAYARD RD UNIT 402", "districts": ["RM-H"], "slopePct": 0, "landslidePct": 0, "underminedPct": 0, "expectedZoning": "GREEN", "expectedEnvironment": "GREEN", "expectedHeadline": "GREEN" },
+  { "pin": "0052G00030000000", "address": "5051 CASTLEMAN ST", "districts": ["R1D-VL"], "slopePct": 0, "landslidePct": 0, "underminedPct": 0, "expectedZoning": "GREEN", "expectedEnvironment": "GREEN", "expectedHeadline": "GREEN" },
+  { "pin": "0051N00300000000", "address": "4750 CENTRE AVE", "districts": ["R1D-VL", "RM-M"], "slopePct": 6.124, "landslidePct": 0, "underminedPct": 0, "expectedZoning": "UNRATED", "expectedEnvironment": "AMBER", "expectedHeadline": "UNRATED" },
+  { "pin": "0026R00172000000", "address": "3426 IOWA ST", "districts": ["R2-L"], "slopePct": 38.479, "landslidePct": 39.343, "underminedPct": 100, "expectedZoning": "GREEN", "expectedEnvironment": "RED", "expectedHeadline": "RED" }
+]

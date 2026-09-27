@@ -6,4 +6,6 @@ For one verified base district, the zoning summary is GREEN if any row is `P`, A
 
 Environmental/geotechnical and historic/condition dimensions remain separate. The headline uses the most severe rated suitability dimension; a missing critical dimension makes it UNRATED. Development potential stays UNRATED until setbacks, coverage, height/FAR, parking, open space, and access are actually evaluated. The version identifiers are `LDES-v2.3-parcel-screen` and `LDES-v2.3-parcel-screen-rules`; use-table cell versions are recorded separately.
 
-The v2.2 fixture suite remains as historical regression coverage for explicit scenario evidence. The default product path uses the five-row screen. Live source status and provenance are added in the next integration step.
+The v2.2 fixture suite remains as historical regression coverage for explicit scenario evidence. The default product path uses the five-row screen. Live source status and provenance appear in the parcel report.
+
+Four [public real parcel cases](verification/real-parcel-cases.md) cover a routine single district, a district with both permitted and prohibited housing uses, a split-zoned parcel, and a parcel with major geotechnical overlaps. A successful zero-overlap clip is distinguished from a positive boundary sliver.

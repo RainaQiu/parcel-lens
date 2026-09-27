@@ -4,7 +4,7 @@ export const SLIVER_AREA_SQFT = 10
 export const SLIVER_OVERLAP_PCT = 0.1
 
 export function isSliver(overlapPct: number, intersectionAreaSqft: number): boolean {
-  return intersectionAreaSqft < SLIVER_AREA_SQFT && overlapPct < SLIVER_OVERLAP_PCT
+  return intersectionAreaSqft > 0 && intersectionAreaSqft < SLIVER_AREA_SQFT && overlapPct < SLIVER_OVERLAP_PCT
 }
 
 export function factIsSliver(fact: OverlapFact): boolean {

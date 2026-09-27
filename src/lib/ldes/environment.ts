@@ -72,7 +72,7 @@ export function scoreEnvironment(evidence: LdesEvidence): {
         detail: 'A tiny polygon overlap is below the versioned engineering denoising threshold and does not change this RAG.',
         nextStep: 'Confirm the clip if the constraint could affect a buildable edge.',
         observedValue: 'sliver',
-        field: 'parcel_overlap_pct',
+        field: slope.sliver ? 'slopeOverlapPct' : slide.sliver ? 'landslideOverlapPct' : 'underminedOverlapPct',
       }),
     )
   }

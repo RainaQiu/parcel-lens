@@ -145,6 +145,11 @@ describe('§911.02 housing pathways', () => {
     expect(scored.contextDrivers.some((item) => item.id === 'POSSIBLE_BOUNDARY_SLIVER')).toBe(true)
   })
 
+  it('does not label a confirmed zero intersection as a boundary sliver', () => {
+    const scored = scoredDistrict(['RM-H'])
+    expect(scored.contextDrivers.some((item) => item.id === 'POSSIBLE_BOUNDARY_SLIVER')).toBe(false)
+  })
+
   it('leaves development potential unrated after pathways are verified', () => {
     const scored = scoredDistrict(['R1D-L'])
     expect(scored.developmentPotentialRag).toBe('UNRATED')
