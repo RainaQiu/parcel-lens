@@ -20,7 +20,7 @@ const CONDEMNED_RESOURCE = '0a963f26-eb4b-4325-bbbc-3ddf6a871410'
 const PGH_BASE = 'https://services1.arcgis.com/YZCmUqbcsUpOKfj7/arcgis/rest/services'
 const WPRDC_BASE = 'https://data.wprdc.org/api/3/action/datastore_search?resource_id='
 
-type DatastoreRecords = { result?: { records?: Array<Record<string, unknown>> } }
+type DatastoreRecords = { success?: boolean; error?: { message?: string }; result?: { records?: Array<Record<string, unknown>>; total?: number } }
 
 function inPittsburgh(muni: number | string | undefined): boolean {
   const n = Number(muni)
@@ -69,15 +69,18 @@ async function datastoreFilter(
   filters: Record<string, string>,
   signal?: AbortSignal,
 ): Promise<Array<Record<string, unknown>>> {
-  const params = new URLSearchParams({
-    resource_id: resource,
-    filters: JSON.stringify(filters),
-    limit: '200',
-  })
-  const res = await fetch(`/api/ckan/datastore_search?${params}`, { signal })
-  if (!res.ok) throw new Error(`Datastore query failed (${res.status})`)
-  const data = (await res.json()) as DatastoreRecords
-  return data.result?.records ?? []
+  const records: Array<Record<string, unknown>> = []
+  for (let offset = 0; offset < 2000; offset += 200) {
+    const params = new URLSearchParams({ resource_id: resource, filters: JSON.stringify(filters), limit: '200', offset: String(offset) })
+    const res = await fetch(`/api/ckan/datastore_search?${params}`, { signal })
+    if (!res.ok) throw new Error(`Datastore query failed (${res.status})`)
+    const data = (await res.json()) as DatastoreRecords
+    if (data.success === false) throw new Error(data.error?.message ?? 'Datastore query failed')
+    const page = data.result?.records ?? []
+    records.push(...page)
+    if (page.length < 200 || (data.result?.total !== undefined && records.length >= data.result.total)) return records
+  }
+  throw new Error('More than 2,000 linked records; cannot safely assess complete history')
 }
 
 async function recordsForPin(
@@ -119,6 +122,10 @@ function activeViolation(rows: Array<Record<string, unknown>>): boolean {
     if (/CLOSED|COMPLI|RESOLVED|VOID|DISMISS|ABATED/.test(blob)) return false
     return /VIOLATION|OPEN|ACTIVE|FOUND|OUTSTANDING/.test(blob)
   })
+}
+
+function activeCondemned(rows: Array<Record<string, unknown>>): boolean {
+  return rows.some((row) => String(row.inspection_status ?? '').trim().toUpperCase() === 'ACTIVE')
 }
 
 function overlapOrFail(
@@ -257,7 +264,7 @@ export async function collectLdesLayers(
     historicDistrictOverlap: historicDistrictClip.fact,
     historicSiteOverlap: historicSiteClip.fact,
     activeViolation: violations.ok ? activeViolation(violations.value) : undefined,
-    activeCondemned: condemned.ok ? condemned.value.length > 0 : undefined,
+    activeCondemned: condemned.ok ? activeCondemned(condemned.value) : undefined,
     closedViolationCount: violations.ok ? closedViolationCount(violations.value) : undefined,
     occupiedImproved: occupiedImproved(assessment),
     useDescription: assessment?.USEDESC ? String(assessment.USEDESC) : undefined,

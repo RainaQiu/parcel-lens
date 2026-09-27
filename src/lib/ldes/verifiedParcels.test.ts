@@ -43,4 +43,10 @@ describe('observed real parcel regression cases', () => {
     const rank: Record<Rag, number> = { GREEN: 0, AMBER: 1, RED: 2, UNRATED: 3 }
     expect(rank[score({ ...base, slopeOverlapPct: 75 }).easeScore]).toBeGreaterThanOrEqual(rank[score(base).easeScore])
   })
+
+  it('never infers a four-unit target when no project scenario was selected', () => {
+    const evidence = applyScenario(layers(cases[0]), null, null, feature)
+    evidence.potential = { criticalInputsComplete: true, capacityLowerBound: 2, capacityUpperBound: 6, presentInputs: ['SETBACKS', 'COVERAGE', 'HEIGHT_FAR', 'PARKING', 'OPEN_SPACE', 'OVERLAY_DIMENSIONS', 'ACCESS'] }
+    expect(scoreEvidence(evidence).developmentPotentialRag).toBe('UNRATED')
+  })
 })

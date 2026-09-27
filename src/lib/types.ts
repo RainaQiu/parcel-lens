@@ -142,6 +142,8 @@ export type HousingPathwayRow = {
   standards: string[]
   sourceUrl: string
   ruleVersion: string
+  codeAsOf: string | null
+  verifiedAt: string | null
   reviewStatus: 'verified' | 'unverified'
   notes: string
 }
@@ -295,8 +297,6 @@ export type LdesEvidence = LdesLayerFacts & {
   scenarioId?: HousingScenarioId | null
   useTableRuleVersion?: string
   targetUnits?: number
-  scenarioSource?: 'PRODUCT_DEFAULT'
-  scenarioUserEditable?: boolean
   ruleVersion?: string
   pathwayVerified?: boolean
   pathwaySource?: PathwaySource

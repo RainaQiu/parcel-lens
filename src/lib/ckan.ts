@@ -65,7 +65,7 @@ export async function searchAssessments(
   if (!trimmed) return []
 
   const compact = trimmed.replace(/[-\s]/g, '')
-  const looksLikePin = /^[0-9A-Z]{10,16}$/i.test(compact)
+  const looksLikePin = /^(?:\d{4}[A-Z]\d{11}|\d{16})$/i.test(compact)
 
   if (looksLikePin) {
     const data = await datastoreSearch(

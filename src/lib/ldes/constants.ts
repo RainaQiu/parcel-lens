@@ -2,8 +2,6 @@ import type { Barrier, CriticalFlag, DriverSource, Rag } from '../types'
 
 export const RULE_VERSION = 'LDES-v2.3-parcel-screen-rules'
 export const SCORE_VERSION = 'LDES-v2.3-parcel-screen' as const
-export const TARGET_UNITS = 4
-export const FIXED_SCENARIO_ID = 'fourplex-4' as const
 export const GEOMETRY_VERSION = 'clip-v1'
 
 export function driverSource(field: string, value: string, retrievedAt?: string): DriverSource {

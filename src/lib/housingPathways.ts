@@ -102,6 +102,8 @@ export function lookupHousingPathways(rawDistricts: string[]): HousingPathwayRow
           standards: [],
           sourceUrl: USE_TABLE_SOURCE_URL,
           ruleVersion: USE_TABLE_RULE_VERSION,
+          codeAsOf: null,
+          verifiedAt: null,
           reviewStatus: 'unverified',
           notes:
             parsed.kind === 'special'
@@ -122,6 +124,8 @@ export function lookupHousingPathways(rawDistricts: string[]): HousingPathwayRow
           standards: [],
           sourceUrl: USE_TABLE_SOURCE_URL,
           ruleVersion: USE_TABLE_RULE_VERSION,
+          codeAsOf: null,
+          verifiedAt: null,
           reviewStatus: 'unverified',
           notes: 'No verified §911.02 cell for this district and use.',
         })
@@ -147,6 +151,8 @@ export function lookupHousingPathways(rawDistricts: string[]): HousingPathwayRow
         standards: cell.standards,
         sourceUrl: cell.sourceUrl,
         ruleVersion: cell.ruleVersion,
+        codeAsOf: cell.codeAsOf,
+        verifiedAt: cell.verifiedAt,
         reviewStatus: cell.reviewStatus,
         notes: notes.join(' '),
       })

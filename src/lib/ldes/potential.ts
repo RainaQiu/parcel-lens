@@ -1,5 +1,5 @@
 import type { Barrier, CapacityInputs, CriticalFlag, LdesEvidence, Rag } from '../types'
-import { makeDriver, TARGET_UNITS } from './constants'
+import { makeDriver } from './constants'
 import { overlayHandled } from './zoning'
 
 const REQUIRED_POTENTIAL = [
@@ -103,7 +103,11 @@ export function scorePotential(evidence: LdesEvidence): {
     return { rag: 'UNRATED', flags, drivers, missing }
   }
 
-  const target = evidence.targetUnits ?? TARGET_UNITS
+  const target = evidence.targetUnits
+  if (target === undefined) {
+    missing.push('project unit target not specified')
+    return { rag: 'UNRATED', flags, drivers, missing }
+  }
   let rag: Rag = 'RED'
   if (lower >= target) rag = 'GREEN'
   else if (upper >= target) rag = 'AMBER'

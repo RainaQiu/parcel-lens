@@ -9,6 +9,8 @@ Older files below are kept as history. They still mention 0–100 scores, letter
 | File | Role |
 |---|---|
 | [LDES_v2.3_parcel_screen.md](LDES_v2.3_parcel_screen.md) | Current default scoring contract |
+| [verification/real-parcel-cases.md](verification/real-parcel-cases.md) | Four public parcel checks and observed rule outcomes |
+| [verification/deployment-readiness.md](verification/deployment-readiness.md) | API routes and production checks |
 | [plans/codex-use-table.md](plans/codex-use-table.md) | Phase 1 plan: verified §911.02 pathways for five housing uses |
 | [plans/unlock-rated-headline.md](plans/unlock-rated-headline.md) | Follow-up plan: stop UNRATED headline when suitability is already rated |
 
@@ -16,7 +18,7 @@ Older files below are kept as history. They still mention 0–100 scores, letter
 
 | File | Role |
 |---|---|
-| [Development_Ease_Score.md](Development_Ease_Score.md) | LDES v2.1 0–100 + RAG mix; **superseded** by v2.2 RAG |
+| [Development_Ease_Score.md](Development_Ease_Score.md) | LDES v2.1 0–100 + RAG mix; **superseded** by v2.3 parcel screening |
 | [LDES_v2.2_RAG.md](LDES_v2.2_RAG.md) | Historical scenario-based RAG rules; superseded for the default flow |
 | [Development_Ease_Scoring_Proposal.md](Development_Ease_Scoring_Proposal.md) | Early methods memo (v0.2); predates the live engine |
 | [Track1_Data_Assessment_and_PRD.md](Track1_Data_Assessment_and_PRD.md) | Track 1 PRD and data inventory |

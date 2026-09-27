@@ -358,6 +358,7 @@ function HousingPathwayMatrix({
                   <a href={row.sourceUrl} target="_blank" rel="noreferrer">
                     {row.ruleVersion}
                   </a>
+                  <small>Code as of: {row.codeAsOf ?? 'unknown'} · Table verified: {row.verifiedAt ?? 'not verified'}</small>
                 </td>
               </tr>
             ))}
