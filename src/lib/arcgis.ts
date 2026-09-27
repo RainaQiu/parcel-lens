@@ -60,7 +60,7 @@ export async function fetchParcelsInBbox(
     geometryType: 'esriGeometryEnvelope',
     inSR: '4326',
     spatialRel: 'esriSpatialRelIntersects',
-    outFields: 'PIN,MAPBLOCKLOT,MUNICODE,CALCACREAGE',
+    outFields: 'PIN,MAPBLOCKLOT,MUNICODE,CALCACREAGE,MODIFIEDON',
     returnGeometry: 'true',
     outSR: '4326',
     where: PITTSBURGH_WHERE,
@@ -74,7 +74,7 @@ export async function fetchParcelByPin(pin: string, signal?: AbortSignal) {
   const normalized = normalizePin(pin)
   const params = new URLSearchParams({
     where: `PIN='${normalized}'`,
-    outFields: 'PIN,MAPBLOCKLOT,MUNICODE,CALCACREAGE',
+    outFields: 'PIN,MAPBLOCKLOT,MUNICODE,CALCACREAGE,MODIFIEDON',
     returnGeometry: 'true',
     outSR: '4326',
     f: 'geojson',

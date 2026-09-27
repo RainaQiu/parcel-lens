@@ -143,6 +143,28 @@ async function loadZoningMap(): Promise<GeoJSON.FeatureCollection> {
   return features.length ? { type: 'FeatureCollection', features } : EMPTY
 }
 
+let layerUpdatedAtPromise: Promise<string | null> | null = null
+
+async function fetchZoningLayerUpdatedAt(): Promise<string | null> {
+  if (!layerUpdatedAtPromise) {
+    layerUpdatedAtPromise = (async () => {
+      try {
+        const res = await fetch('/api/zoning?f=json')
+        if (!res.ok) return null
+        const data = (await res.json()) as {
+          editingInfo?: { dataLastEditDate?: number; lastEditDate?: number }
+        }
+        const ms = data.editingInfo?.dataLastEditDate ?? data.editingInfo?.lastEditDate
+        return typeof ms === 'number' && Number.isFinite(ms) ? new Date(ms).toISOString() : null
+      } catch {
+        layerUpdatedAtPromise = null
+        return null
+      }
+    })()
+  }
+  return layerUpdatedAtPromise
+}
+
 export async function fetchZoningAt(
   lng: number,
   lat: number,
@@ -157,7 +179,10 @@ export async function fetchZoningAt(
     returnGeometry: 'false',
     f: 'geojson',
   })
-  const res = await fetch(`/api/zoning/query?${params}`, { signal })
+  const [res, updatedAt] = await Promise.all([
+    fetch(`/api/zoning/query?${params}`, { signal }),
+    fetchZoningLayerUpdatedAt(),
+  ])
   if (!res.ok) {
     throw new Error(`Zoning query failed (${res.status})`)
   }
@@ -175,6 +200,7 @@ export async function fetchZoningAt(
     code: props.zon_new?.trim() ?? '',
     description: (props.legendtype || props.full_zoning_type || '').trim(),
     definitionUrl: httpsUrl(props.municode),
+    updatedAt,
   }
 }
 
