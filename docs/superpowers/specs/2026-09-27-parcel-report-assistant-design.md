@@ -135,7 +135,15 @@ type ParcelChatResponse = {
   mode: 'fact' | 'scenario' | 'insufficient_data' | 'out_of_scope'
   answer: string
   projectCheck: 'MATCH_FOUND' | 'REVIEW_PATH' | 'NO_LISTED_PATH' | 'INSUFFICIENT_DATA' | 'OUT_OF_SCOPE' | null
-  citations: Array<{ sourceId: string; reportSection: string; kind: 'report' | 'web' }>
+  citations: Array<{
+    sourceId: string
+    reportSection: string
+    kind: 'report' | 'web'
+    url?: string
+    title?: string
+    retrievedAt?: string
+    provider?: string
+  }>
   missingInputs: string[]
   suggestedQuestions: string[]
   projectBriefPatch?: Partial<ProjectBrief>

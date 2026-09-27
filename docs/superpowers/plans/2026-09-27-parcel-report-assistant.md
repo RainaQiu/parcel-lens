@@ -57,7 +57,7 @@
 
 - [ ] **Step 1: Write failing tests** for valid requests, size/message limits, deterministic score/pathway answers, unsupported school questions, ambiguous project questions, unknown citations, changed grades, invented numbers, approval claims, malformed JSON, and prompt-injection text.
 - [ ] **Step 2: Run the focused server tests** and confirm the new exports or expected errors are missing.
-- [ ] **Step 3: Implement validation and fallback**. Use a bounded prompt that treats report facts, web snippets, and user text as untrusted content. Allow web citations only from the supplied search results.
+- [ ] **Step 3: Implement validation and fallback**. Use a bounded prompt that treats report facts, web snippets, and user text as untrusted content. Allow web citations only from the supplied search results and require URL, title, retrieval time, and provider for every web citation.
 - [ ] **Step 4: Run focused and full tests**; expect green output.
 - [ ] **Step 5: Commit** with `feat: validate grounded parcel chat responses`.
 
