@@ -38,7 +38,7 @@ describe('explanation API fallback', () => {
     provider = createServer((req, res) => {
       requestedPath = req.url
       res.writeHead(200, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ summary: 'The mapped flood area is the main screening constraint.', drivers: [], unknowns: [] }) } }] }))
+      res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ summary: 'The AMBER preliminary screen calls for a mapped slope review.', tasks: [], unknowns: [] }) } }] }))
     })
     await new Promise((resolve) => provider.listen(0, '127.0.0.1', resolve))
     process.env.LLM_API_KEY = 'test-only'
@@ -46,11 +46,11 @@ describe('explanation API fallback', () => {
     process.env.LLM_ENABLED = 'true'
     const url = await endpoint()
     const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-      pin: '0011M00146000000', scoreVersion: 'LDES-v2.3', ruleVersion: 'v2.3', overallResult: 'RED',
-      fallbackSummary: 'Mapped flood area.', drivers: [], missingRequired: [],
+      pin: '0011M00146000000', scoreVersion: 'LDES-v3-screening-scorecard', ruleVersion: 'v1', screeningRag: 'AMBER', pathwaySummary: 'BY_RIGHT_PATH_IDENTIFIED',
+      fallbackSummary: 'AMBER preliminary screen.', constraints: [], reviewTasks: [], evidenceGaps: [],
     }) })
     expect(response.status).toBe(200)
     expect(requestedPath).toBe('/v1/chat/completions')
-    expect((await response.json()).summary).toMatch(/flood area/)
+    expect((await response.json()).summary).toMatch(/slope review/)
   })
 })

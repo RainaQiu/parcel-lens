@@ -68,7 +68,7 @@ export async function handleExplanationRequest(req, res) {
   if (!allowed(ip)) { send(res, 429, { error: 'Explanation rate limit reached' }); return }
   let input
   try { input = validateExplanationInput(await readJson(req)) } catch { send(res, 400, { error: 'Invalid explanation request' }); return }
-  const key = createHash('sha256').update(JSON.stringify(input) + (process.env.LLM_MODEL || 'glm-5.3-flash') + 'prompt-v1').digest('hex')
+  const key = createHash('sha256').update(JSON.stringify(input) + (process.env.LLM_MODEL || 'glm-5.3-flash') + 'prompt-v2-scorecard').digest('hex')
   const cached = cache.get(key)
   if (cached && Date.now() - cached.time < CACHE_MS) { send(res, 200, cached.value); return }
   if (!dailyBudget.take(new Date().toISOString().slice(0, 10))) { send(res, 503, { error: 'AI explanation daily budget reached' }); return }
@@ -79,7 +79,7 @@ export async function handleExplanationRequest(req, res) {
     send(res, 200, value)
   } catch (error) {
     // Keep provider errors and untrusted content out of responses and logs.
-    const badInput = error instanceof Error && /Invalid parcel ID|Invalid report facts|Invalid driver/.test(error.message)
+    const badInput = error instanceof Error && /Invalid parcel ID|Invalid report facts|Invalid constraint|Invalid task|Invalid evidence gap/.test(error.message)
     send(res, badInput ? 400 : 503, { error: badInput ? 'Invalid report facts' : 'AI explanation unavailable' })
   }
 }

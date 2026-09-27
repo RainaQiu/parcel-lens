@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { formatDate, formatMoney, formatNumber, formatYear, mailingAddress, siteAddress } from '../lib/format'
 import { loadParcelByPin } from '../lib/parcelReport'
 import { makeParcelReport, type ParcelReport } from '../lib/reportView'
+import { buildExplanationInput } from '../lib/screening/explanationInput'
 import { screeningPresentation } from '../lib/screening/presentation'
 import type { SourceObservation } from '../lib/types'
 
 export type Explanation = {
   summary: string
-  drivers: Array<{ id: string; explanation: string; nextStep: string }>
+  tasks: Array<{ id: string; explanation: string }>
   unknowns: string[]
 }
 
@@ -49,7 +50,7 @@ export function ReportPage({ pin, cached, saved, onBack, onAdd, onLoaded }: Prop
     const controller = new AbortController()
     setExplanation(null)
     setExplanationUnavailable(false)
-    const input = explanationInput(report)
+    const input = buildExplanationInput(report)
     void fetch('/api/explanations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -74,6 +75,7 @@ export function ReportPage({ pin, cached, saved, onBack, onAdd, onLoaded }: Prop
   const shown = screeningPresentation(scorecard)
   const address = siteAddress(selected.assessment)
   const triggered = scorecard.reviewTasks.filter((task) => task.scoreEffect === 'triggered')
+  const explainedTasks = new Map(explanation?.tasks.map((task) => [task.id, task.explanation]) ?? [])
   const mapped = scorecard.mappedConstraints.filter((item) => item.status === 'DETECTED' || item.boundaryUncertain)
   return (
     <main className="report-page">
@@ -100,7 +102,7 @@ export function ReportPage({ pin, cached, saved, onBack, onAdd, onLoaded }: Prop
             </section>
 
             <section className="report-section" id="drivers"><div className="section-heading"><span>01</span><div><h2>Why this result and what to check next?</h2><p>Verified review tasks are separate from routine project due diligence.</p></div></div>
-              {triggered.length ? <div className="finding-list">{triggered.map((task) => <article className="finding" key={task.id}><div className="finding-top"><span className="finding-number">Targeted review</span><strong>{task.trigger}</strong></div><p><b>Why it matters:</b> {task.whyItMatters}</p><p><b>Check with:</b> {task.whoToConsult}</p><p className="finding-source">Source: {task.sourceRefs.join(', ')}</p></article>)}</div> : <p className="empty-note">No extra review task was found within the verified sources. Routine project checks still apply.</p>}
+              {triggered.length ? <div className="finding-list">{triggered.map((task) => <article className="finding" key={task.id}><div className="finding-top"><span className="finding-number">Targeted review</span><strong>{task.trigger}</strong></div><p><b>Why it matters:</b> {task.whyItMatters}</p>{explainedTasks.has(task.id) && <p><b>AI explanation:</b> {explainedTasks.get(task.id)}</p>}<p><b>Check with:</b> {task.whoToConsult}</p><p className="finding-source">Source: {task.sourceRefs.join(', ')}</p></article>)}</div> : <p className="empty-note">No extra review task was found within the verified sources. Routine project checks still apply.</p>}
               <h3>Mapped observations</h3><div className="screening-observations">{mapped.length ? mapped.map((item) => <div key={item.id}><b>{item.label}</b><span>{item.boundaryUncertain ? 'Small boundary overlap — uncertain' : item.category ? `${item.category} detected` : 'Detected'}{item.overlapPct !== null ? ` · ${item.overlapPct.toFixed(3)}% of parcel` : ''}</span><small>Proposed project impact: {item.projectImpact === 'UNKNOWN' ? 'unknown' : 'not applicable'}{item.source?.sourceUrl && <> · <a href={item.source.sourceUrl} target="_blank" rel="noreferrer">Original map ↗</a></>}</small></div>) : <p>No mapped overlap detected in available checked layers.</p>}</div>
             </section>
 
@@ -122,17 +124,3 @@ export function ReportPage({ pin, cached, saved, onBack, onAdd, onLoaded }: Prop
   )
 }
 
-function explanationInput(report: ParcelReport) {
-  const { scorecard } = report
-  return {
-    pin: report.pin,
-    scoreVersion: scorecard.scoreVersion,
-    ruleVersion: scorecard.ruleVersions.join(', '),
-    screeningRag: scorecard.screeningRag,
-    pathwaySummary: scorecard.pathwaySummary,
-    fallbackSummary: report.fallbackSummary,
-    constraints: scorecard.mappedConstraints,
-    reviewTasks: scorecard.reviewTasks,
-    evidenceGaps: scorecard.evidenceGaps,
-  }
-}
