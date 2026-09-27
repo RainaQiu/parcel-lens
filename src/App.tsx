@@ -38,6 +38,8 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [noticeId, setNoticeId] = useState(0)
+  const [noticeLeaving, setNoticeLeaving] = useState(false)
   const [zoom, setZoom] = useState(16.6)
   const mapRef = useRef<ParcelMapHandle>(null)
   const selectAbort = useRef<AbortController | null>(null)
@@ -63,6 +65,17 @@ export default function App() {
   }, [savedPins])
   useEffect(() => { if (route.page === 'map') window.requestAnimationFrame(() => mapRef.current?.resize()) }, [route.page])
   useEffect(() => {
+    if (!notice) return
+    setNoticeLeaving(false)
+    const hide = window.setTimeout(() => setNoticeLeaving(true), 4000)
+    return () => window.clearTimeout(hide)
+  }, [notice, noticeId])
+  useEffect(() => {
+    if (!notice || !noticeLeaving) return
+    const clear = window.setTimeout(() => { setNotice(null); setNoticeLeaving(false) }, 220)
+    return () => window.clearTimeout(clear)
+  }, [notice, noticeLeaving])
+  useEffect(() => {
     const trimmed = query.trim()
     if (trimmed.length < 3) return
     const controller = new AbortController()
@@ -82,10 +95,15 @@ export default function App() {
     window.scrollTo(0, 0)
   }
   function cacheReport(report: ParcelReport) { setCache((previous) => ({ ...previous, [report.pin]: report })) }
+  function showNotice(message: string) {
+    setNoticeLeaving(false)
+    setNotice(message)
+    setNoticeId((id) => id + 1)
+  }
   function addToList(pin: string) {
     const next = addSavedPin(savedPins, pin)
     setSavedPins(next)
-    setNotice(next.length === savedPins.length && !savedPins.includes(pin) ? 'The list can hold up to four parcels.' : 'Parcel added to your list.')
+    showNotice(next.length === savedPins.length && !savedPins.includes(pin) ? 'The list can hold up to four parcels.' : 'Parcel added to your list.')
   }
   function removeFromList(pin: string) {
     setSavedPins((previous) => removeSavedPin(previous, pin))
@@ -159,11 +177,11 @@ export default function App() {
           {searching && <span className="search-status">Searching…</span>}
           {hits.length > 0 && <ul className="results" role="listbox" id="parcel-search-results">{visibleHits.map((hit, index) => <li key={hit.PARID} id={`parcel-option-${index}`} role="option" aria-selected={index === activeHit}><button type="button" onMouseEnter={() => setActiveHit(index)} onClick={() => void chooseHit(hit)}><span>{[hit.PROPERTYHOUSENUM, hit.PROPERTYADDRESS].filter(Boolean).join(' ')}</span><small>{hit.PROPERTYCITY ?? 'Pittsburgh'}{hit.PROPERTYZIP ? `, PA ${hit.PROPERTYZIP}` : ''} · Parcel {hit.PARID}{searchedAddress && (String(hit.PROPERTYHOUSENUM) !== searchedAddress.house || normalizeStreet(hit.PROPERTYADDRESS ?? '') !== searchedAddress.street) ? ' · Approximate match' : ''}</small></button></li>)}{hits.length > 8 && !showMore && <li role="presentation"><button type="button" className="show-more" onClick={() => setShowMore(true)}>Show {hits.length - 8} more candidates</button></li>}</ul>}
           {searchError && <p className="search-error" role="status">{searchError}</p>}
-        </form><button type="button" className="saved-counter" onClick={() => { if (savedPins.length >= 2) navigate(`/compare?pins=${savedPins.join(',')}`); else setNotice('Add two parcels to compare.') }}>Saved list <strong>{savedPins.length}</strong></button>
+        </form><button type="button" className="saved-counter" onClick={() => { if (savedPins.length >= 2) navigate(`/compare?pins=${savedPins.join(',')}`); else showNotice('Add two parcels to compare.') }}>Saved list <strong>{savedPins.length}</strong></button>
       </header>
       <main className="workspace"><Suspense fallback={<div className="map-loading">Loading map…</div>}><ParcelMap ref={mapRef} selectedFeature={selected?.feature ?? null} savedPins={savedPins} onSelectPin={(feature) => void loadFeature(feature)} onZoomChange={setZoom} /></Suspense>{zoom < 16 && <div className="zoom-hint">Zoom in to load parcel boundaries</div>}{(previewOpen || savedPins.length > 0) && <div className="map-left-stack">{previewOpen && <ParcelPreview data={selected} loading={loading} error={error} saved={savedPins.includes(currentPin)} onClose={() => { selectAbort.current?.abort(); setSelected(null); setError(null) }} onReport={(pin) => navigate(`/parcels/${pin}`)} onAdd={addToList} />}
         {savedPins.length > 0 && <aside className="saved-tray" aria-label="Saved parcels"><div className="tray-title"><strong>Saved parcels</strong><span>{savedPins.length}/4</span></div><div className="tray-items">{savedPins.map((pin) => <div key={pin} className="tray-item"><button type="button" onClick={() => void focusSaved(pin)} aria-label={`Show ${pin} on map`}>{cache[pin]?.address ?? savedLabels[pin] ?? 'Loading address…'}<small>{pin}</small></button><a href={`/parcels/${pin}`} onClick={(event) => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); navigate(`/parcels/${pin}`) }}>Report</a><button type="button" aria-label={`Remove ${pin}`} onClick={() => removeFromList(pin)}>×</button></div>)}</div><button type="button" className="primary-button" disabled={savedPins.length < 2} onClick={() => navigate(`/compare?pins=${savedPins.join(',')}`)}>Compare {savedPins.length} parcels →</button></aside>}</div>}
-        {notice && <div className="app-notice" role="status">{notice}<button type="button" onClick={() => setNotice(null)} aria-label="Dismiss notification">×</button></div>}
+        {notice && <div className={`app-notice${noticeLeaving ? ' is-leaving' : ''}`} role="status">{notice}<button type="button" onClick={() => setNoticeLeaving(true)} aria-label="Dismiss notification">×</button></div>}
       </main>
     </div>}
     {route.page === 'report' && <ReportPage key={route.pin} pin={route.pin} cached={cache[route.pin]} saved={savedPins.includes(route.pin)} onBack={() => navigate('/')} onAdd={addToList} onLoaded={cacheReport} />}
