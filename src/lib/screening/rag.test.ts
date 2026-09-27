@@ -22,4 +22,7 @@ describe('combined preliminary RAG precedence', () => {
   it('stays Green with routine due diligence only', () => {
     expect(combineScreeningRag(input('BY_RIGHT_PATH_IDENTIFIED', true, [{ ...task, scoreEffect: 'routine' }]))).toBe('GREEN')
   })
+  it('allows a thresholded major slope constraint to be Red', () => {
+    expect(combineScreeningRag({ ...input('BY_RIGHT_PATH_IDENTIFIED'), redConstraint: true })).toBe('RED')
+  })
 })

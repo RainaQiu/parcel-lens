@@ -22,17 +22,57 @@ function selected(parcelId = pin, ldes = evidence()): SelectedParcel {
     properties: { PIN: parcelId, MUNICODE: 101 } }, assessment: { PARID: parcelId, PROPERTYADDRESS: 'FORBES AVE', PROPERTYHOUSENUM: 5000, MUNICODE: 101 }, zoning: null, ldes }
 }
 describe('v3 parcel scorecard', () => {
-  it('screens the documented CMU EMI parcel Amber for 2.208% mapped slope, with project impact unknown', () => {
+  it('keeps the documented CMU EMI parcel Green for a sub-10% mapped slope, with project impact unknown', () => {
     const result = scoreScreeningParcel(selected())
     expect(result.parcelId).toBe(pin)
     expect(result.pathwaySummary).toBe('BY_RIGHT_PATH_IDENTIFIED')
     expect(result.housingPathways.map((row) => row.pathway)).toEqual(['P', 'NOT_PERMITTED', 'NOT_PERMITTED', 'NOT_PERMITTED', 'A'])
     expect(result.mappedConstraints.find((item) => item.id === 'slope')).toMatchObject({ status: 'DETECTED', overlapPct: 2.208, projectImpact: 'UNKNOWN' })
-    expect(result.screeningRag).toBe('AMBER')
+    expect(result.screeningRag).toBe('GREEN')
     expect(result.projectFeasibility).toBe('NOT_ASSESSED')
   })
-  it('never turns majority overlap Red solely because of its size', () => {
-    expect(scoreScreeningParcel(selected(pin, evidence(55))).screeningRag).toBe('AMBER')
+  it('uses Amber for 10% to under 50% slope overlap', () => {
+    expect(scoreScreeningParcel(selected(pin, evidence(10))).screeningRag).toBe('AMBER')
+    expect(scoreScreeningParcel(selected(pin, evidence(49.999))).screeningRag).toBe('AMBER')
+  })
+  it('uses Red at 50% slope overlap when required evidence is complete', () => {
+    expect(scoreScreeningParcel(selected(pin, evidence(50))).screeningRag).toBe('RED')
+    expect(scoreScreeningParcel(selected(pin, evidence(55))).screeningRag).toBe('RED')
+  })
+  it('uses the same 10% and 50% boundaries for landslide overlap', () => {
+    const below = evidence(0)
+    below.sources!.landslide = obs(fact(9.999))
+    expect(scoreScreeningParcel(selected(pin, below)).screeningRag).toBe('GREEN')
+    const amber = evidence(0)
+    amber.sources!.landslide = obs(fact(10))
+    expect(scoreScreeningParcel(selected(pin, amber)).screeningRag).toBe('AMBER')
+    const red = evidence(0)
+    red.sources!.landslide = obs(fact(50))
+    expect(scoreScreeningParcel(selected(pin, red)).screeningRag).toBe('RED')
+  })
+  it('keeps any effective undermined overlap Amber', () => {
+    const data = evidence(0)
+    data.sources!.undermined = obs(fact(0.101))
+    expect(scoreScreeningParcel(selected(pin, data)).screeningRag).toBe('AMBER')
+  })
+  it('does not promote a tiny historic boundary hit to Amber', () => {
+    const small = evidence(0)
+    small.sources!.historicDistrict = obs({ overlapPct: 0.5, intersectionAreaSqft: 50 })
+    expect(scoreScreeningParcel(selected(pin, small)).screeningRag).toBe('GREEN')
+    const meaningful = evidence(0)
+    meaningful.sources!.historicDistrict = obs({ overlapPct: 1, intersectionAreaSqft: 50 })
+    expect(scoreScreeningParcel(selected(pin, meaningful)).screeningRag).toBe('AMBER')
+  })
+  it('grades FEMA 0.2%, SFHA and floodway separately', () => {
+    const pct02 = evidence(0)
+    pct02.sources!.fema = obs([{ category: 'PCT_0_2', overlapPct: 9.999, intersectionAreaSqft: 1000 }])
+    expect(scoreScreeningParcel(selected(pin, pct02)).screeningRag).toBe('GREEN')
+    const sfha = evidence(0)
+    sfha.sources!.fema = obs([{ category: 'SFHA', overlapPct: 10, intersectionAreaSqft: 1000 }])
+    expect(scoreScreeningParcel(selected(pin, sfha)).screeningRag).toBe('AMBER')
+    const floodway = evidence(0)
+    floodway.sources!.fema = obs([{ category: 'FLOODWAY', overlapPct: 1, intersectionAreaSqft: 100 }])
+    expect(scoreScreeningParcel(selected(pin, floodway)).screeningRag).toBe('RED')
   })
   it('keeps separate PINs independent even with the same address', () => {
     const first = scoreScreeningParcel(selected(pin, evidence(2.208)))
@@ -66,7 +106,9 @@ describe('v3 parcel scorecard', () => {
     data.sources!.landslide = obs(fact(item.landslidePct))
     data.sources!.undermined = obs(fact(item.underminedPct))
     const result = scoreScreeningParcel(selected(item.pin, data))
-    const expected = item.districts.length > 1 ? 'UNRATED' : item.slopePct || item.landslidePct || item.underminedPct ? 'AMBER' : 'GREEN'
+    const expected = item.districts.length > 1 ? 'UNRATED'
+      : item.slopePct >= 50 || item.landslidePct >= 50 ? 'RED'
+        : item.slopePct >= 10 || item.landslidePct >= 10 || item.underminedPct ? 'AMBER' : 'GREEN'
     expect(result.screeningRag).toBe(expected)
   })
   it('does not quietly turn an uncertain floodway sliver into Green', () => {

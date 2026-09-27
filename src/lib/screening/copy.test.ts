@@ -22,6 +22,12 @@ describe('bounded deterministic copy', () => {
     expect(result).toContain('. Project impact is unknown')
     expect(result).not.toMatch(/whole parcel affected|permit denied/i)
   })
+  it('explains an environmental Red without calling it a missing housing path', () => {
+    const result = buildScreeningFallback({ ...card('RED'), reviewTasks: [{ id: 'mapped-fema', trigger: 'FEMA regulatory floodway overlaps the parcel.',
+      whyItMatters: 'Project impact is unknown.', whoToConsult: 'Floodplain administrator', sourceRefs: ['fema'], scoreEffect: 'triggered' }] })
+    expect(result).toContain('FEMA regulatory floodway')
+    expect(result).not.toContain('limited to the five checked residential uses')
+  })
   it('names missing evidence for Unrated', () => {
     expect(buildScreeningFallback({ ...card('UNRATED'), evidenceGaps: [{ id: 'fema', dimension: 'FEMA', reason: 'Source failed', sourceRefs: ['fema'] }] })).toContain('Source failed')
   })

@@ -1,6 +1,7 @@
 import { canonicalPin } from '../savedParcels'
 import type { LdesEvidence, SelectedParcel, SourceObservation } from '../types'
 import { observeMappedConstraints } from './constraints'
+import { mappedConstraintRag } from './hazards'
 import { summarizePathways } from './pathways'
 import { combineScreeningRag } from './rag'
 import { deriveReviewTasks } from './tasks'
@@ -38,8 +39,9 @@ export function scoreScreeningParcel(selected: SelectedParcel): ScreeningScoreca
   if (!parcelId || !identityVerified) evidenceGaps.unshift({ id: 'parcel-identity', dimension: 'parcel identity',
     reason: 'A unique Pittsburgh parcel ID and polygon boundary are not verified.', sourceRefs: ['parcel-boundary'] })
   const reviewTasks = deriveReviewTasks(evidence, pathway.status, mapped.constraints, evidenceGaps)
+  const redConstraint = mapped.constraints.some((constraint) => mappedConstraintRag(constraint) === 'RED')
   const screeningRag = combineScreeningRag({ identityVerified, pathway: pathway.status,
-    requiredSourcesComplete: Object.values(requiredSourceCoverage).every(Boolean), tasks: reviewTasks })
+    requiredSourcesComplete: Object.values(requiredSourceCoverage).every(Boolean), tasks: reviewTasks, redConstraint })
   return { parcelId, scoreVersion: 'LDES-v3-screening-scorecard', screeningRag, projectFeasibility: 'NOT_ASSESSED',
     pathwaySummary: pathway.status, housingPathways: pathway.rows, mappedConstraints: mapped.constraints,
     reviewTasks, evidenceGaps, unassessed: [...unassessed], requiredSourceCoverage,

@@ -4,6 +4,8 @@
 
 **Goal:** Replace the default v2.3 headline with a source-grounded v3 parcel screening scorecard for deciding which Pittsburgh parcels deserve further residential development due diligence.
 
+**Historical implementation plan.** Its original overlap acceptance examples are superseded by the live thresholds in [LDES v3 preliminary scorecard](../../LDES_v3_screening_scorecard.md).
+
 **Architecture:** Keep the existing GIS, CKAN, address search, and verified §911.02 use table. Four pure units derive housing pathway status, per-source mapped observations, review tasks, and the combined RAG; a single `ScreeningScorecard` becomes the view contract for preview, report, compare, and optional LLM explanation. Retain v2.2/v2.3 functions and fixtures as historical regression behavior, but stop displaying their `easeScore` as the current headline.
 
 **Tech Stack:** React 19, TypeScript 6, Vite 8, Vitest 5, Node.js explanation proxy, existing MapLibre/Turf data pipeline.

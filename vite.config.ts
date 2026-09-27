@@ -2,6 +2,8 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 // @ts-expect-error Server-side JavaScript module intentionally stays outside the browser bundle.
 import { handleExplanationRequest } from './server/explanations.mjs'
+// @ts-expect-error Server-side JavaScript module intentionally stays outside the browser bundle.
+import { handleParcelChatRequest } from './server/parcelChat.mjs'
 
 const explanationPlugin = {
   name: 'parcel-explanations',
@@ -13,8 +15,18 @@ const explanationPlugin = {
   },
 }
 
+const parcelChatPlugin = {
+  name: 'parcel-chat',
+  configureServer(server: { middlewares: { use: (path: string, handler: typeof handleParcelChatRequest) => void } }) {
+    server.middlewares.use('/api/parcel-chat', handleParcelChatRequest)
+  },
+  configurePreviewServer(server: { middlewares: { use: (path: string, handler: typeof handleParcelChatRequest) => void } }) {
+    server.middlewares.use('/api/parcel-chat', handleParcelChatRequest)
+  },
+}
+
 export default defineConfig({
-  plugins: [react(), explanationPlugin],
+  plugins: [react(), explanationPlugin, parcelChatPlugin],
   test: {
     environment: 'node',
   },

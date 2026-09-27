@@ -7,7 +7,7 @@ npm install
 npm run dev
 ```
 
-Try public PIN `0052P00130000000` (5000 Forbes Ave). It has an EMI residential use listing, but a mapped 25%+ slope overlap makes the preliminary screen AMBER for a targeted location check. The report keeps project impact and financial feasibility unassessed. PIN `0051N00300000000` is split-zoned and stays UNRATED. The report uses `LDES-v3-screening-scorecard`.
+Try public PIN `0052P00130000000` (5000 Forbes Ave). It has an EMI residential use listing and a 2.208% mapped 25%+ slope overlap, which remains GREEN under the low-overlap screening threshold while keeping project impact visible as unknown. The report keeps financial feasibility unassessed. PIN `0051N00300000000` is split-zoned and stays UNRATED. The report uses `LDES-v3-screening-scorecard`.
 
 Address example: `2633 fifth avenue` and `2633 5th ave` both return five distinct `2633 5TH AVE` parcel candidates. Choose the intended parcel ID; the app will not silently choose one address match. Common suffixes, numbered street names, and nearby typos are candidate-search aids, not proof of parcel identity.
 
@@ -43,3 +43,9 @@ Copy `.env.example` to `.env` and fill `LLM_API_KEY` **only after the API provid
 The template defaults to OpenCode Go's OpenAI-compatible `chat/completions` endpoint with `deepseek-v4.1-flash`. A real `5000 Forbes Ave` report returned a validated explanation in local testing with `LLM_MAX_OUTPUT_TOKENS=2500`. The cap includes the provider's internal reasoning tokens, so it is not the length of the text shown to the user. The [OpenCode Go documentation](https://opencode.ai/docs/go/#endpoints) lists the model and endpoint, and describes Go as intended for coding-agent traffic; check that your account permits end-user parcel explanations before enabling the key. `LLM_BASE_URL` and `LLM_MODEL` let the adapter use another compatible provider.
 
 The service sends only v3 grade, pathway status, mapped observations, review tasks, evidence gaps, and rule/source identifiers. It does not send owner or mailing records. The model cannot change the grade; outputs with unknown task IDs, unknown gaps, unsupported approval claims, or new numeric claims are rejected. Requests are limited per IP and per day, and successful explanations are cached against their fact payload.
+
+## Parcel report assistant
+
+The full report includes an **Ask about this parcel** drawer. It accepts questions about the current report and optional residential project assumptions (housing form, units, stories, footprint, and land control). The assistant can return a project-specific pathway check, but it never changes the deterministic RAG, presents a pathway as a permit, or assesses cost, safety, or financial feasibility. School, hospital, commercial, and other non-residential questions remain explicitly out of scope until a verified use-specific rule table exists.
+
+The drawer uses `/api/parcel-chat`. With no valid LLM response it returns a deterministic answer from the same report facts, so the feature remains usable when the key, budget, provider, or network is unavailable. Set `WEB_SEARCH_ENABLED=true` and configure the optional Tavily key only when external research is desired. Web results are passed to the model as separate evidence and rendered with a **Web-sourced** label, URL, title, provider, and retrieval time. The acceptance matrix is in [parcel report assistant cases](docs/verification/parcel-chat-cases.md).

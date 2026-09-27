@@ -833,6 +833,50 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .property-grid dt { font-size: 11px; text-transform: uppercase; color: var(--muted); }
 .property-grid dd { margin: 3px 0 0; overflow-wrap: anywhere; }
 
+/* Parcel report assistant */
+.parcel-chat-card { margin-top: 6px; padding-top: 16px; border-top: 1px solid var(--line); }
+.parcel-chat-card h2 { margin: 3px 0 6px; font-size: 18px; }
+.parcel-chat-card p:not(.eyebrow) { color: var(--muted); font-size: 12px; line-height: 1.45; margin: 0 0 12px; }
+.parcel-chat-open { width: 100%; padding: 10px 12px; }
+.parcel-chat-backdrop { position: fixed; inset: 0; z-index: 20; display: flex; justify-content: flex-end; background: #10203955; }
+.parcel-chat-drawer { width: min(520px, 100%); height: 100%; display: flex; flex-direction: column; background: #f7f9fd; box-shadow: -12px 0 42px #14203333; padding: 24px; overflow: hidden; }
+.parcel-chat-header { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
+.parcel-chat-header h2 { margin: 3px 0 0; font-size: 23px; line-height: 1.2; }
+.parcel-chat-close { border: 0 !important; background: transparent !important; padding: 0 5px !important; color: var(--muted) !important; font-size: 28px !important; line-height: 1; }
+.parcel-chat-context { flex: 0 0 auto; }
+.parcel-chat-scope, .parcel-chat-notice { margin: 18px 0 0; border-left: 3px solid #6b8fd6; background: #edf3ff; color: #294573; font-size: 12px; line-height: 1.5; padding: 10px 12px; }
+.parcel-chat-assumptions { margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.parcel-chat-assumptions summary { cursor: pointer; padding: 11px 13px; font-size: 13px; font-weight: 700; }
+.parcel-chat-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 13px 13px; }
+.parcel-chat-fields label { display: grid; gap: 4px; color: var(--muted); font-size: 11px; font-weight: 700; }
+.parcel-chat-fields input, .parcel-chat-fields select { min-width: 0; border: 1px solid var(--line); border-radius: 7px; padding: 8px; color: var(--ink); background: #fff; font: inherit; font-size: 13px; }
+.parcel-chat-checkbox { grid-column: 1 / -1; display: flex !important; grid-template-columns: auto 1fr; align-items: center; gap: 7px !important; }
+.parcel-chat-checkbox input { width: auto; }
+.parcel-chat-web-toggle { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--muted); font-size: 12px; }
+.parcel-chat-context-hide { margin-top: 9px; border: 0; padding: 0; background: transparent; color: var(--accent); font-size: 11px; font-weight: 700; }
+.parcel-chat-context-collapsed { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted); font-size: 11px; }
+.parcel-chat-context-collapsed button { border: 0; padding: 0; background: transparent; color: var(--accent); font: inherit; font-weight: 700; white-space: nowrap; }
+.parcel-chat-messages { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 11px; padding: 14px 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.parcel-chat-welcome { border: 1px dashed #b9c7de; border-radius: 11px; background: #fff; padding: 15px; }
+.parcel-chat-welcome p { margin: 0 0 10px; }
+.parcel-chat-suggestions, .parcel-chat-followups { display: flex; flex-wrap: wrap; gap: 7px; }
+.parcel-chat-suggestions button, .parcel-chat-followups button { border: 1px solid #c6d2e6 !important; border-radius: 999px !important; background: #f8fafd !important; color: var(--ink) !important; font-size: 12px !important; padding: 7px 10px !important; text-align: left; }
+.parcel-chat-message { max-width: 92%; border-radius: 12px; padding: 11px 13px; line-height: 1.5; font-size: 14px; }
+.parcel-chat-message.user { align-self: flex-end; background: #e5edff; }
+.parcel-chat-message.assistant { align-self: flex-start; background: #fff; border: 1px solid var(--line); }
+.parcel-chat-role { display: block; color: var(--muted); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.parcel-chat-message p { margin: 0; white-space: pre-wrap; }
+.parcel-chat-citations { display: grid; gap: 4px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.parcel-chat-citations a { color: var(--accent); font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
+.parcel-chat-followups { flex: 0 0 auto; display: flex; flex-wrap: nowrap; gap: 7px; max-width: 100%; padding: 8px 0 9px; border-top: 1px solid var(--line); background: #f7f9fd; position: relative; z-index: 1; overflow-x: auto; scrollbar-width: thin; }
+.parcel-chat-followups button { flex: 0 0 auto; white-space: nowrap; }
+.parcel-chat-notice { margin: 0 0 8px; border-left-color: #d97706; background: #fff8ed; color: #8a4b08; font-size: 11px; line-height: 1.35; padding: 7px 10px; }
+.parcel-chat-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+.parcel-chat-form textarea { width: 100%; min-height: 58px; max-height: 58px; resize: none; overflow-y: hidden; border: 1px solid var(--line); border-radius: 9px; padding: 10px; font: inherit; line-height: 1.4; transition: min-height 160ms ease, max-height 160ms ease, border-color 160ms ease; }
+.parcel-chat-form.is-expanded textarea { min-height: 138px; max-height: 32vh; resize: vertical; overflow-y: auto; border-color: #8ba9df; }
+.parcel-chat-form button { height: 42px; }
+.parcel-chat-footnote { color: var(--muted); font-size: 10px; line-height: 1.3; margin: 6px 0 0; }
+
 /* Comparison */
 .compare-header { margin-bottom: 30px; }
 .compare-header p:last-child { max-width: 70ch; line-height: 1.5; }
@@ -865,6 +909,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   .rail-facts { width: 100%; grid-template-columns: 1fr 1fr; }
   .report-header { align-items: flex-start; flex-direction: column; }
   .property-grid { grid-template-columns: 1fr; }
+  .parcel-chat-card { width: 100%; }
 }
 @media (max-width: 720px) {
   .compare-table-wrap { display: none; }
@@ -880,5 +925,8 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   .report-summary-card { padding: 20px; }
   .screening-answers { grid-template-columns: 1fr; }
   .report-section { margin-top: 34px; }
+  .parcel-chat-drawer { padding: 18px; }
+  .parcel-chat-fields { grid-template-columns: 1fr; }
+  .parcel-chat-checkbox { grid-column: auto; }
 }
 @media print { .report-rail, .report-actions, .report-top-nav { display: none; } .report-page { background: #fff; } .report-layout { display: block; } .report-details { break-inside: avoid; } }
