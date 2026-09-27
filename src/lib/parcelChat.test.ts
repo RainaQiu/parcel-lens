@@ -33,6 +33,13 @@ describe('parcel chat client', () => {
   it('labels report and web citations distinctly', () => {
     expect(citationLabel({ sourceId: 'use-table-v1', reportSection: 'pathways', kind: 'report' })).toBe('Report · Housing pathways')
     expect(citationLabel({ sourceId: 'web-1', reportSection: 'research', kind: 'web', title: 'City code', url: 'https://example.test', provider: 'tavily', retrievedAt: '2026-09-27T12:00:00Z' })).toContain('Web-sourced')
+    expect(citationLabel({ sourceId: 'pittsburgh-chapter-902', reportSection: 'official zoning reference', kind: 'official', title: 'Chapter 902', url: 'https://example.test', provider: 'Pittsburgh Code', retrievedAt: '2026-09-27' })).toContain('Official source')
+  })
+
+  it('uses the official zoning reference for a general code question in fallback mode', () => {
+    const answer = deterministicChatFallback(report(), 'What does RM-H zoning mean?', brief())
+    expect(answer.answer).toContain('Multi-Unit Residential')
+    expect(answer.citations.some((citation) => citation.kind === 'official')).toBe(true)
   })
 
   it('merges a server project brief patch safely', () => {

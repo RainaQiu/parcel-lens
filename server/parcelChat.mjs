@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { buildParcelChatPrompt, deterministicParcelAnswer, validateParcelChatOutput, validateParcelChatRequest } from './parcelChatCore.mjs'
+import { buildParcelChatPrompt, deterministicParcelAnswer, getOfficialReferenceVersion, lookupZoningReference, PARCEL_CHAT_SYSTEM_PROMPT, validateParcelChatOutput, validateParcelChatRequest } from './parcelChatCore.mjs'
 
 if (existsSync('.env')) process.loadEnvFile('.env')
 
@@ -50,7 +50,7 @@ function withinDailyBudget(day) {
 }
 
 function cacheKey(request, searchResults) {
-  return createHash('sha256').update(JSON.stringify({ request, searchResults, model: process.env.LLM_MODEL ?? 'deepseek-v4.1-flash', prompt: 'parcel-chat-v1' })).digest('hex')
+  return createHash('sha256').update(JSON.stringify({ request, searchResults, officialReferenceVersion: getOfficialReferenceVersion(), model: process.env.LLM_MODEL ?? 'deepseek-v4.1-flash', prompt: 'parcel-chat-v2' })).digest('hex')
 }
 
 async function modelCompletion(prompt, sessionId) {
@@ -62,7 +62,7 @@ async function modelCompletion(prompt, sessionId) {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.LLM_API_KEY}`, 'Content-Type': 'application/json', 'User-Agent': 'parcel-lens/1.0', 'x-opencode-session': sessionId },
     body: JSON.stringify({ model, temperature: 0.2, max_tokens: maxTokens, response_format: { type: 'json_object' }, messages: [
-      { role: 'system', content: 'You are ParcelLens Assistant. Return JSON only and follow the supplied response contract.' },
+      { role: 'system', content: PARCEL_CHAT_SYSTEM_PROMPT },
       { role: 'user', content: prompt },
     ] }),
     signal: AbortSignal.timeout(timeout),
@@ -132,8 +132,10 @@ export async function handleParcelChatRequest(req, res) {
   if (cached && Date.now() - cached.time < CACHE_MS) { send(res, 200, { ...cached.value, cached: true, webSearch }); return }
   if (!withinDailyBudget(new Date().toISOString().slice(0, 10))) { send(res, 200, { ...fallback, fallbackReason: 'Daily chat budget reached' }); return }
   try {
-    const raw = await modelCompletion(buildParcelChatPrompt(request, searchResults), sessionId)
-    const value = validateParcelChatOutput(raw, request, searchResults)
+    const referenceResult = lookupZoningReference([...request.messages].reverse().find((message) => message.role === 'user')?.content ?? '', request.reportFacts)
+    const officialReferences = referenceResult ? [referenceResult] : []
+    const raw = await modelCompletion(buildParcelChatPrompt(request, officialReferences, searchResults, { maxTurns: configuredNumber('LLM_CHAT_MAX_TURNS', 8, 1, 8) }), sessionId)
+    const value = validateParcelChatOutput(raw, request, searchResults, officialReferences)
     const response = { ...value, fallback: false, webSearch }
     if (cache.size > 200) cache.delete(cache.keys().next().value)
     cache.set(key, { time: Date.now(), value: response })

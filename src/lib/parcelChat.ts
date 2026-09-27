@@ -1,12 +1,13 @@
 import type { ParcelReport } from './reportView'
 import { buildParcelChatContext, checkProjectConcept, emptyProjectBrief, mergeProjectBrief, type ParcelChatContext, type ProjectBrief } from './screening/chatContext'
+import { lookupClientZoningReference } from './screening/zoningReference'
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string }
 
 export type ChatCitation = {
   sourceId: string
   reportSection: string
-  kind: 'report' | 'web'
+  kind: 'report' | 'official' | 'web'
   url?: string
   title?: string
   retrievedAt?: string
@@ -64,6 +65,8 @@ function questionAnswer(report: ParcelReport, question: string, projectBrief: Pr
   const context = buildParcelChatContext(report, projectBrief)
   const check = checkProjectConcept(report.scorecard, context.projectBrief)
   const lower = question.toLowerCase()
+  const zoningReference = lookupClientZoningReference(question)
+  if (zoningReference) return { mode: 'fact', answer: zoningReference.answer, projectCheck: null, citations: zoningReference.citations, missingInputs: [], suggestedQuestions: ['How does this district affect the housing pathways on this parcel?', 'What should I verify next?'] }
   if (/\b(school|hospital|commercial|retail|office|warehouse)\b/.test(lower) || check.status === 'OUT_OF_SCOPE') {
     return { mode: 'out_of_scope', answer: 'This question asks about a non-residential use that the current ParcelLens rule table does not verify. The report can show the parcel zoning and site evidence, but it cannot determine suitability without a use-specific rule table.', projectCheck: 'OUT_OF_SCOPE', citations: [], missingInputs: ['use-specific zoning rules'], suggestedQuestions: ['Which supported residential form should be checked?'] }
   }
@@ -88,6 +91,7 @@ export function deterministicChatFallback(report: ParcelReport, question: string
 
 export function citationLabel(citation: ChatCitation): string {
   if (citation.kind === 'web') return `Web-sourced${citation.provider ? ` · ${citation.provider}` : ''}${citation.title ? ` · ${citation.title}` : ''}`
+  if (citation.kind === 'official') return `Official source${citation.provider ? ` · ${citation.provider}` : ''}${citation.title ? ` · ${citation.title}` : ''}`
   const labels: Record<string, string> = { overview: 'Overview', drivers: 'Review tasks', pathways: 'Housing pathways', unknowns: 'Unknowns', evidence: 'Evidence' }
   return `Report · ${labels[citation.reportSection] ?? citation.reportSection}`
 }
