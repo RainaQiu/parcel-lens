@@ -72,7 +72,7 @@ export const ZONING_COLORS: Record<string, string> = {
   MTOBOR: '#000000',
 }
 
-export const ZONING_LEGEND: { label: string; color: string }[] = [
+export const ZONING_LEGEND: { label: string; color: string; codes: string[] }[] = [
   { label: 'Golden Triangle / Public Realm', color: '#004c73' },
   { label: 'Riverfront', color: '#e4edc2' },
   { label: 'Specially Planned', color: '#ababab' },
@@ -95,7 +95,19 @@ export const ZONING_LEGEND: { label: string; color: string }[] = [
   { label: 'Residential Multi-Unit', color: '#ffd280' },
   { label: 'Residential Mixed Use', color: '#cf6557' },
   { label: 'MTOBOR', color: '#000000' },
-]
+].map((item) => ({
+  ...item,
+  codes: Object.entries(ZONING_COLORS)
+    .filter(([, color]) => color === item.color)
+    .map(([code]) => code),
+}))
+
+export const ALL_ZONING_LABELS = ZONING_LEGEND.map((item) => item.label)
+
+export function zoningCodesForLabels(labels: Iterable<string>): string[] {
+  const selected = new Set(labels)
+  return ZONING_LEGEND.flatMap((item) => (selected.has(item.label) ? item.codes : []))
+}
 
 export const ZONING_FILL_COLOR = [
   'match',
