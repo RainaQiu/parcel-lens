@@ -66,6 +66,7 @@ export type ZoningInfo = {
 
 export type SearchHit = {
   PARID: string
+  MUNICODE?: string | number | null
   PROPERTYHOUSENUM?: string | number | null
   PROPERTYADDRESS?: string | null
   PROPERTYCITY?: string | null

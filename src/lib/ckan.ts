@@ -1,4 +1,5 @@
 import { normalizePin } from './arcgis'
+import { parseAddress, rankAddressCandidates } from './addressSearch'
 import type { AssessmentRow, SearchHit } from './types'
 
 const RESOURCE_ID = '65855e14-549e-4992-b5be-d629afc676fa'
@@ -16,7 +17,7 @@ const SEARCH_FIELDS = [
 type DatastoreResponse = {
   success?: boolean
   error?: { message?: string }
-  result?: { records?: Array<SearchHit & { MUNICODE?: number | string }> }
+  result?: { records?: SearchHit[]; total?: number }
 }
 
 async function datastoreSearch(
@@ -35,7 +36,7 @@ async function datastoreSearch(
   return res.json()
 }
 
-function inPittsburgh(muni: number | string | undefined): boolean {
+function inPittsburgh(muni: number | string | null | undefined): boolean {
   const n = Number(muni)
   return Number.isFinite(n) && n >= 100 && n <= 132
 }
@@ -78,24 +79,24 @@ export async function searchAssessments(
     return (data.result?.records ?? []) as SearchHit[]
   }
 
-  const addressMatch = trimmed.match(/^(\d+)\s+(.+)$/)
-  if (addressMatch) {
-    const house = addressMatch[1]
-    const street = addressMatch[2].toUpperCase()
-    const data = await datastoreSearch(
-      {
-        filters: JSON.stringify({ PROPERTYHOUSENUM: house }),
-        limit: '50',
-      },
-      signal,
-    )
-    return (data.result?.records ?? [])
-      .filter(
-        (row) =>
-          inPittsburgh(row.MUNICODE) &&
-          (row.PROPERTYADDRESS ?? '').toUpperCase().includes(street),
-      )
-      .slice(0, 8)
+  const address = parseAddress(trimmed)
+  if (address) {
+    async function byHouse(house: string): Promise<SearchHit[]> {
+      const found: SearchHit[] = []
+      for (let offset = 0; offset < 500; offset += 50) {
+        const data = await datastoreSearch({ filters: JSON.stringify({ PROPERTYHOUSENUM: house }), limit: '50', offset: String(offset) }, signal)
+        const rows = data.result?.records ?? []
+        found.push(...rows.filter((row) => inPittsburgh(row.MUNICODE)))
+        if (rows.length < 50 || offset + rows.length >= (data.result?.total ?? 0)) break
+      }
+      return found
+    }
+    const exact = await byHouse(address.house)
+    const ranked = rankAddressCandidates(trimmed, exact)
+    if (ranked.length) return ranked.slice(0, 20)
+    const near = await Promise.all([-2, -1, 1, 2].filter((delta) => Number(address.house) + delta > 0)
+      .map((delta) => byHouse(String(Number(address.house) + delta))))
+    return rankAddressCandidates(trimmed, near.flat()).slice(0, 20)
   }
 
   const data = await datastoreSearch(

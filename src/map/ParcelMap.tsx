@@ -6,11 +6,12 @@ import {
   useRef,
   useState,
 } from 'react'
-import { fetchParcelsInBbox } from '../lib/arcgis'
+import { fetchParcelByPin, fetchParcelsInBbox, featureCentroid } from '../lib/arcgis'
 import type { ParcelFeature } from '../lib/types'
 import { fetchZoningMap, ZONING_FILL_COLOR, ZONING_LEGEND } from '../lib/zoning'
 
 const MIN_ZOOM = 16
+const MAP_VIEW_KEY = 'parcel-lens:map-view:v1'
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
 const ZONING_SOLID_OPACITY = 0.82
 const ZONING_ZOOMED_OPACITY = 0.2
@@ -53,16 +54,18 @@ function rasterStyle(tiles: string, attribution: string): StyleSpecification {
 
 export type ParcelMapHandle = {
   flyToFeature: (feature: ParcelFeature) => void
+  resize: () => void
 }
 
 type Props = {
   selectedFeature: ParcelFeature | null
+  savedPins: string[]
   onSelectPin: (feature: ParcelFeature) => void
   onZoomChange: (zoom: number) => void
 }
 
 export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
-  function ParcelMap({ selectedFeature, onSelectPin, onZoomChange }, ref) {
+  function ParcelMap({ selectedFeature, savedPins, onSelectPin, onZoomChange }, ref) {
     const containerRef = useRef<HTMLDivElement>(null)
     const mapRef = useRef<Map | null>(null)
     const onSelectRef = useRef(onSelectPin)
@@ -70,19 +73,24 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
     const abortRef = useRef<AbortController | null>(null)
     const debounceRef = useRef<number | null>(null)
     const selectedRef = useRef<ParcelFeature | null>(selectedFeature)
+    const savedFeaturesRef = useRef<ParcelFeature[]>([])
     const [basemap, setBasemap] = useState<Basemap>('satellite')
     const [zoningVisible, setZoningVisible] = useState(true)
+    const [legendOpen, setLegendOpen] = useState(false)
     const basemapRef = useRef<Basemap>(basemap)
     const zoningVisibleRef = useRef(true)
     const zoningDataRef = useRef<GeoJSON.FeatureCollection>(EMPTY)
 
-    onSelectRef.current = onSelectPin
-    onZoomRef.current = onZoomChange
-    selectedRef.current = selectedFeature
-    basemapRef.current = basemap
-    zoningVisibleRef.current = zoningVisible
+    useEffect(() => {
+      onSelectRef.current = onSelectPin
+      onZoomRef.current = onZoomChange
+      selectedRef.current = selectedFeature
+      basemapRef.current = basemap
+      zoningVisibleRef.current = zoningVisible
+    }, [onSelectPin, onZoomChange, selectedFeature, basemap, zoningVisible])
 
     useImperativeHandle(ref, () => ({
+      resize() { mapRef.current?.resize() },
       flyToFeature(feature) {
         const map = mapRef.current
         if (!map) return
@@ -94,17 +102,27 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
     useEffect(() => {
       if (!containerRef.current || mapRef.current) return
 
+      let initialView: { center: [number, number]; zoom: number } = { center: [-79.9477, 40.4528], zoom: 16.6 }
+      try {
+        const saved = JSON.parse(window.sessionStorage.getItem(MAP_VIEW_KEY) ?? 'null')
+        if (Array.isArray(saved?.center) && saved.center.length === 2 && saved.center.every(Number.isFinite) && Number.isFinite(saved.zoom)) initialView = saved
+      } catch { /* Use the default Pittsburgh view. */ }
+
       const map = new Map({
         container: containerRef.current,
         style: STYLES.satellite,
-        center: [-79.9477, 40.4528],
-        zoom: 16.6,
+        center: initialView.center,
+        zoom: initialView.zoom,
         maxZoom: 19,
         minZoom: 11,
       })
 
       map.addControl(new NavigationControl({ showCompass: true }), 'top-right')
       mapRef.current = map
+      map.on('moveend', () => {
+        const center = map.getCenter()
+        window.sessionStorage.setItem(MAP_VIEW_KEY, JSON.stringify({ center: [center.lng, center.lat], zoom: map.getZoom() }))
+      })
 
       const loadParcels = () => {
         const zoom = map.getZoom()
@@ -144,6 +162,7 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
       const applySelected = () => {
         applySelectedHighlight(map, selectedRef.current)
       }
+      const applySaved = () => applySavedHighlights(map, savedFeaturesRef.current)
 
       const onParcelClick = (event: { features?: MapGeoJSONFeature[] }) => {
         const raw = event.features?.[0]
@@ -171,6 +190,7 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
         applyZoning()
         setZoningLayerVisibility(map, zoningVisibleRef.current)
         applySelected()
+        applySaved()
         loadParcels()
         map.off('click', 'parcels-fill', onParcelClick)
         map.off('mouseenter', 'parcels-fill', onParcelEnter)
@@ -207,6 +227,24 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
     }, [selectedFeature])
 
     useEffect(() => {
+      const controller = new AbortController()
+      if (!savedPins.length) {
+        savedFeaturesRef.current = []
+        const map = mapRef.current
+        if (map?.isStyleLoaded()) applySavedHighlights(map, [])
+        return () => controller.abort()
+      }
+      void Promise.allSettled(savedPins.map((pin) => fetchParcelByPin(pin, controller.signal))).then((results) => {
+        if (controller.signal.aborted) return
+        const features = results.flatMap((result) => result.status === 'fulfilled' && result.value ? [result.value] : [])
+        savedFeaturesRef.current = features
+        const map = mapRef.current
+        if (map?.isStyleLoaded()) applySavedHighlights(map, features)
+      })
+      return () => controller.abort()
+    }, [savedPins])
+
+    useEffect(() => {
       const map = mapRef.current
       if (!map?.isStyleLoaded()) return
       setZoningLayerVisibility(map, zoningVisible)
@@ -229,22 +267,22 @@ export const ParcelMap = forwardRef<ParcelMapHandle, Props>(
               <button
                 type="button"
                 className="zoning-legend-toggle"
-                aria-expanded={zoningVisible}
-                aria-label={zoningVisible ? 'Minimize zoning' : 'Show zoning'}
-                onClick={() => setZoningVisible((visible) => !visible)}
+                aria-expanded={legendOpen}
+                aria-label={legendOpen ? 'Minimize zoning legend' : 'Show zoning legend'}
+                onClick={() => setLegendOpen((open) => !open)}
               >
-                {zoningVisible ? '−' : '+'}
+                {legendOpen ? '−' : '+'}
               </button>
             </div>
-            {zoningVisible && (
-              <ul>
+            {legendOpen && (
+              <><label className="legend-layer-switch"><input type="checkbox" checked={zoningVisible} onChange={(event) => setZoningVisible(event.target.checked)} /> Show zoning layer</label><ul>
                 {ZONING_LEGEND.map((item) => (
                   <li key={item.label}>
                     <span style={{ background: item.color }} />
                     {item.label}
                   </li>
                 ))}
-              </ul>
+              </ul></>
             )}
           </aside>
           <div className="basemap-toggle" role="group" aria-label="Map view">
@@ -301,6 +339,8 @@ function addMapLayers(map: Map, basemap: Basemap) {
   if (!map.getSource('selected')) {
     map.addSource('selected', { type: 'geojson', data: EMPTY })
   }
+  if (!map.getSource('saved-parcels')) map.addSource('saved-parcels', { type: 'geojson', data: EMPTY })
+  if (!map.getSource('saved-markers')) map.addSource('saved-markers', { type: 'geojson', data: EMPTY })
   if (!map.getLayer('zoning-fill')) {
     map.addLayer({
       id: 'zoning-fill',
@@ -371,6 +411,8 @@ function addMapLayers(map: Map, basemap: Basemap) {
     })
   }
   if (!map.getLayer('selected-fill')) {
+    map.addLayer({ id: 'saved-outline', type: 'line', source: 'saved-parcels', paint: { 'line-color': '#facc15', 'line-width': 4 } })
+    map.addLayer({ id: 'saved-marker', type: 'circle', source: 'saved-markers', paint: { 'circle-color': '#facc15', 'circle-radius': 9, 'circle-stroke-color': '#142033', 'circle-stroke-width': 2 } })
     map.addLayer({
       id: 'selected-fill',
       type: 'fill',
@@ -400,6 +442,13 @@ function addMapLayers(map: Map, basemap: Basemap) {
   map.setPaintProperty('selected-fill', 'fill-opacity', SELECTED_PAINT.fillOpacity)
   map.setPaintProperty('selected-line', 'line-color', SELECTED_PAINT.line)
   map.setPaintProperty('selected-line', 'line-width', SELECTED_PAINT.lineWidth)
+}
+
+function applySavedHighlights(map: Map, features: ParcelFeature[]) {
+  const outlines = map.getSource('saved-parcels') as GeoJSONSource | undefined
+  outlines?.setData({ type: 'FeatureCollection', features })
+  const markers = map.getSource('saved-markers') as GeoJSONSource | undefined
+  markers?.setData({ type: 'FeatureCollection', features: features.map((feature) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: featureCentroid(feature) }, properties: { PIN: feature.properties.PIN } })) })
 }
 
 function applySelectedHighlight(map: Map, feature: ParcelFeature | null) {

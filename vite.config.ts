@@ -1,8 +1,20 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
+// @ts-expect-error Server-side JavaScript module intentionally stays outside the browser bundle.
+import { handleExplanationRequest } from './server/explanations.mjs'
+
+const explanationPlugin = {
+  name: 'parcel-explanations',
+  configureServer(server: { middlewares: { use: (path: string, handler: typeof handleExplanationRequest) => void } }) {
+    server.middlewares.use('/api/explanations', handleExplanationRequest)
+  },
+  configurePreviewServer(server: { middlewares: { use: (path: string, handler: typeof handleExplanationRequest) => void } }) {
+    server.middlewares.use('/api/explanations', handleExplanationRequest)
+  },
+}
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), explanationPlugin],
   test: {
     environment: 'node',
   },
