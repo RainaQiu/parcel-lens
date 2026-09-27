@@ -1,0 +1,54 @@
+{
+  "version": "pittsburgh-zoning-reference-v1",
+  "retrievedAt": "2026-09-27",
+  "sources": [
+    {
+      "sourceId": "pittsburgh-chapter-902",
+      "title": "Pittsburgh Code Chapter 902: Zoning Districts in General",
+      "url": "https://ecode360.com/45474093"
+    },
+    {
+      "sourceId": "pittsburgh-chapter-903",
+      "title": "Pittsburgh Code Chapter 903: Residential Zoning Districts",
+      "url": "https://ecode360.com/45474194"
+    },
+    {
+      "sourceId": "pittsburgh-chapter-911",
+      "title": "Pittsburgh Code Chapter 911: Primary Uses",
+      "url": "https://ecode360.com/45476600"
+    }
+  ],
+  "baseDistricts": {
+    "R1D": { "label": "Single-Unit Detached Residential", "kind": "use subdistrict", "sourceIds": ["pittsburgh-chapter-902", "pittsburgh-chapter-903"] },
+    "R1A": { "label": "Single-Unit Attached Residential", "kind": "use subdistrict", "sourceIds": ["pittsburgh-chapter-902", "pittsburgh-chapter-903"] },
+    "R2": { "label": "Two-Unit Residential", "kind": "use subdistrict", "sourceIds": ["pittsburgh-chapter-902", "pittsburgh-chapter-903"] },
+    "R3": { "label": "Three-Unit Residential", "kind": "use subdistrict", "sourceIds": ["pittsburgh-chapter-902", "pittsburgh-chapter-903"] },
+    "RM": { "label": "Multi-Unit Residential", "kind": "use subdistrict", "sourceIds": ["pittsburgh-chapter-902", "pittsburgh-chapter-903"] },
+    "NDO": { "label": "Neighborhood Office", "kind": "mixed-use district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "LNC": { "label": "Local Neighborhood Commercial", "kind": "mixed-use district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "NDI": { "label": "Neighborhood Industrial", "kind": "mixed-use district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "UNC": { "label": "Urban Neighborhood Commercial", "kind": "mixed-use district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "HC": { "label": "Highway Commercial", "kind": "mixed-use district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "GI": { "label": "General Industrial", "kind": "mixed-use district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "UI": { "label": "Urban Industrial", "kind": "mixed-use district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "UC-MU": { "label": "Urban Center Mixed Use", "kind": "mixed-use district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "UC-E": { "label": "Urban Center Employment", "kind": "mixed-use district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "R-MU": { "label": "Residential Mixed Use", "kind": "mixed-use district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "EMI": { "label": "Educational/Medical Institution", "kind": "special purpose district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "P": { "label": "Park", "kind": "special purpose district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "H": { "label": "Hillside", "kind": "special purpose district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "GT": { "label": "Golden Triangle", "kind": "mixed-use district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "RIV-RM": { "label": "Riverfront Mixed Residential", "kind": "riverfront district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "RIV-MU": { "label": "Riverfront Mixed Use", "kind": "riverfront district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "RIV-NS": { "label": "Riverfront North Shore", "kind": "riverfront district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "RIV-GI": { "label": "Riverfront General Industrial", "kind": "riverfront district", "sourceIds": ["pittsburgh-chapter-902"] },
+    "RIV-IMU": { "label": "Riverfront Industrial Mixed Use", "kind": "riverfront district", "sourceIds": ["pittsburgh-chapter-902"] }
+  },
+  "developmentSubdistricts": {
+    "VL": { "label": "Very Low-Density", "sourceIds": ["pittsburgh-chapter-902", "pittsburgh-chapter-903"] },
+    "L": { "label": "Low-Density", "sourceIds": ["pittsburgh-chapter-902", "pittsburgh-chapter-903"] },
+    "M": { "label": "Moderate-Density", "sourceIds": ["pittsburgh-chapter-902", "pittsburgh-chapter-903"] },
+    "H": { "label": "High-Density", "sourceIds": ["pittsburgh-chapter-902", "pittsburgh-chapter-903"] },
+    "VH": { "label": "Very High-Density", "sourceIds": ["pittsburgh-chapter-902", "pittsburgh-chapter-903"] }
+  }
+}
