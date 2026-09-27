@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { formatDate, formatMoney, formatNumber, formatYear, mailingAddress, siteAddress } from '../lib/format'
 import { loadParcelByPin } from '../lib/parcelReport'
-import { humanizeMissing, makeParcelReport, type ParcelReport } from '../lib/reportView'
-import type { Barrier, SourceObservation } from '../lib/types'
+import { makeParcelReport, type ParcelReport } from '../lib/reportView'
+import { screeningPresentation } from '../lib/screening/presentation'
+import type { SourceObservation } from '../lib/types'
 
 export type Explanation = {
   summary: string
@@ -69,9 +70,11 @@ export function ReportPage({ pin, cached, saved, onBack, onAdd, onLoaded }: Prop
     return <main className="report-page"><button type="button" className="text-button" onClick={onBack}>← Back to map</button><div className="report-shell"><p role="status">{loadError ?? 'Loading parcel report…'}</p>{loadError && <button type="button" onClick={onBack}>Search another parcel</button>}</div></main>
   }
 
-  const { score, selected } = report
+  const { scorecard, selected } = report
+  const shown = screeningPresentation(scorecard)
   const address = siteAddress(selected.assessment)
-  const explainedDrivers = new Map(explanation?.drivers.map((driver) => [driver.id, driver]) ?? [])
+  const triggered = scorecard.reviewTasks.filter((task) => task.scoreEffect === 'triggered')
+  const mapped = scorecard.mappedConstraints.filter((item) => item.status === 'DETECTED' || item.boundaryUncertain)
   return (
     <main className="report-page">
       <div className="report-shell">
@@ -83,48 +86,53 @@ export function ReportPage({ pin, cached, saved, onBack, onAdd, onLoaded }: Prop
         <div className="report-layout">
           <div className="report-main">
             <section className="report-summary-card" id="overview">
-              <div className="report-summary-heading"><span className={`report-status score-${score.easeScore.toLowerCase()}`}>{score.easeScore === 'UNRATED' ? 'Not enough evidence to rate' : `${score.easeScore} · Parcel screening`}</span><span>Rule {score.scoreVersion}</span></div>
-              <h2>What matters first</h2>
+              <div className="report-summary-heading"><span className={`report-status score-${scorecard.screeningRag.toLowerCase()}`}>{shown.gradeText}</span><span>{scorecard.scoreVersion}</span></div>
+              <h2>Development Ease Score — Preliminary zoning &amp; site screen</h2>
               <p className="report-lead">{explanation?.summary ?? report.fallbackSummary}</p>
               {explanation ? <p className="ai-label">AI explanation of the verified screening facts</p> : explanationUnavailable ? <p className="fallback-label">AI explanation unavailable; showing the source-based summary.</p> : <p className="fallback-label">Showing the source-based summary.</p>}
-              <p className="scope-note">This screening describes listed housing pathways and observed parcel constraints. It does not determine permits, project size, financial feasibility, or approval.</p>
+              <p className="scope-note">{shown.scope} A map overlap does not establish impact on an unlocated project footprint.</p>
+              <div className="screening-answers">
+                <div><small>Verified housing path</small><p>{shown.pathwayText}</p></div>
+                <div><small>Mapped and record leads</small><p>{triggered.map((task) => task.trigger).join(' ') || 'No additional review task identified in checked sources.'}</p></div>
+                <div><small>First next check</small><p>{shown.topTask?.trigger ?? shown.firstGap?.reason ?? 'Define the proposed project and complete routine due diligence.'}</p></div>
+                <div><small>Still unassessed</small><p>Project location and size, land control, engineering cost, and financial feasibility.</p></div>
+              </div>
             </section>
 
-            <section className="report-section" id="drivers"><div className="section-heading"><span>01</span><div><h2>Why this result?</h2><p>Important observations and the next checks they suggest.</p></div></div>
-              {score.drivers.length ? <div className="finding-list">{score.drivers.map((driver, index) => <Finding key={`${driver.id}-${index}`} driver={driver} explanation={explainedDrivers.get(driver.id)} />)}</div> : <p className="empty-note">No rated constraint drivers are available for this parcel.</p>}
+            <section className="report-section" id="drivers"><div className="section-heading"><span>01</span><div><h2>Why this result and what to check next?</h2><p>Verified review tasks are separate from routine project due diligence.</p></div></div>
+              {triggered.length ? <div className="finding-list">{triggered.map((task) => <article className="finding" key={task.id}><div className="finding-top"><span className="finding-number">Targeted review</span><strong>{task.trigger}</strong></div><p><b>Why it matters:</b> {task.whyItMatters}</p><p><b>Check with:</b> {task.whoToConsult}</p><p className="finding-source">Source: {task.sourceRefs.join(', ')}</p></article>)}</div> : <p className="empty-note">No extra review task was found within the verified sources. Routine project checks still apply.</p>}
+              <h3>Mapped observations</h3><div className="screening-observations">{mapped.length ? mapped.map((item) => <div key={item.id}><b>{item.label}</b><span>{item.boundaryUncertain ? 'Small boundary overlap — uncertain' : item.category ? `${item.category} detected` : 'Detected'}{item.overlapPct !== null ? ` · ${item.overlapPct.toFixed(3)}% of parcel` : ''}</span><small>Proposed project impact: {item.projectImpact === 'UNKNOWN' ? 'unknown' : 'not applicable'}{item.source?.sourceUrl && <> · <a href={item.source.sourceUrl} target="_blank" rel="noreferrer">Original map ↗</a></>}</small></div>) : <p>No mapped overlap detected in available checked layers.</p>}</div>
             </section>
 
             <section className="report-section" id="pathways"><div className="section-heading"><span>02</span><div><h2>Housing pathways</h2><p>Base district use listings only; site and project rules still need review.</p></div></div>
-              <div className="report-table-wrap"><table className="report-table"><thead><tr><th>Housing use</th><th>District</th><th>Listed path</th><th>Source</th></tr></thead><tbody>{score.housingPathways.map((row) => <tr key={`${row.useType}-${row.districtKey}-${row.rawDistrict}`}><td>{row.useLabel}</td><td>{row.rawDistrict}</td><td><strong className={`score-${row.rag.toLowerCase()}`}>{row.pathway === 'UNKNOWN' ? 'Not rated' : `${row.pathway} · ${row.rag}`}</strong>{row.notes && <small>{row.notes}</small>}</td><td><a href={row.sourceUrl} target="_blank" rel="noreferrer">Code {row.ruleVersion}</a></td></tr>)}</tbody></table>{score.housingPathways.length === 0 && <p>No verified pathway rows are available.</p>}</div>
+              <div className="report-table-wrap"><table className="report-table"><thead><tr><th>Housing use</th><th>Base district</th><th>Listed path</th><th>Source</th></tr></thead><tbody>{scorecard.housingPathways.map((row) => <tr key={`${row.useType}-${row.districtKey}-${row.rawDistrict}`}><td>{row.useLabel}</td><td>{row.rawDistrict}</td><td><strong>{row.pathway === 'UNKNOWN' ? 'Unknown' : row.pathway}</strong>{row.notes && <small>{row.notes}</small>}</td><td><a href={row.sourceUrl} target="_blank" rel="noreferrer">Code {row.ruleVersion}</a></td></tr>)}</tbody></table>{scorecard.housingPathways.length === 0 && <p>No verified pathway rows are available.</p>}</div>
             </section>
 
-            <section className="report-section" id="unknowns"><div className="section-heading"><span>03</span><div><h2>What is still unknown?</h2><p>These items can change a real development decision.</p></div></div><ul className="unknown-list">{score.missingRequired.map((item) => <li key={item}>{humanizeMissing(item)}</li>)}{score.developmentPotentialRag === 'UNRATED' && <li>Project-specific setbacks, coverage, height/FAR, parking, and access have not been assessed.</li>}</ul>{score.missingRequired.length === 0 && score.developmentPotentialRag !== 'UNRATED' && <p>No additional required gaps were flagged by the current rules.</p>}</section>
+            <section className="report-section" id="unknowns"><div className="section-heading"><span>03</span><div><h2>What is still unknown?</h2><p>Missing source evidence and project questions are shown separately.</p></div></div><h3>Evidence gaps</h3>{scorecard.evidenceGaps.length ? <ul className="unknown-list">{scorecard.evidenceGaps.map((gap) => <li key={gap.id}>{gap.reason}</li>)}</ul> : <p>No required source gap was identified.</p>}<h3>Project questions not assessed</h3><ul className="unknown-list">{scorecard.unassessed.map((item) => <li key={item}>{item}</li>)}</ul></section>
 
             <section className="report-section" id="evidence"><div className="section-heading"><span>04</span><div><h2>Evidence and property records</h2><p>Inspect original sources, retrieval state, and assessor fields.</p></div></div>
               <details className="report-details"><summary>Source observations</summary><div className="source-list">{Object.entries(selected.ldes?.sources ?? {}).map(([key, value]) => { const source = value as SourceObservation<unknown>; return <div key={key}><strong>{key}</strong><span>{source.status}{source.nAReason ? ` · ${source.nAReason}` : ''}</span><small>Source updated: {source.sourceUpdatedAt ?? 'not provided'} · Retrieved: {source.retrievedAt ?? 'unknown'} · Join: {source.joinMethod}</small><a href={source.sourceUrl} target="_blank" rel="noreferrer">Original source ↗</a></div> })}</div></details>
               <details className="report-details"><summary>Parcel and assessor details</summary><dl className="property-grid"><div><dt>Parcel ID</dt><dd>{report.pin}</dd></div><div><dt>Lot area</dt><dd>{formatNumber(selected.assessment?.LOTAREA, 0)} sq ft</dd></div><div><dt>Municipality</dt><dd>{selected.assessment?.MUNIDESC ?? 'Unknown'}</dd></div><div><dt>Zoning description</dt><dd>{selected.zoning?.description ?? 'Unknown'}</dd></div><div><dt>Owner type</dt><dd>{selected.assessment?.OWNERDESC ?? 'Unknown'}</dd></div><div><dt>Mailing address</dt><dd>{mailingAddress(selected.assessment)}</dd></div><div><dt>Last sale price</dt><dd>{formatMoney(selected.assessment?.SALEPRICE)}</dd></div><div><dt>Last sale date</dt><dd>{formatDate(selected.assessment?.SALEDATE)}</dd></div><div><dt>Certified tax year</dt><dd>{formatYear(selected.assessment?.TAXYEAR)}</dd></div><div><dt>Assessment file as of</dt><dd>{formatDate(selected.assessment?.ASOFDATE)}</dd></div><div><dt>Boundary last modified</dt><dd>{formatDate(selected.feature.properties.MODIFIEDON)}</dd></div><div><dt>Zoning layer last updated</dt><dd>{formatDate(selected.zoning?.updatedAt)}</dd></div></dl></details>
             </section>
           </div>
-          <aside className="report-rail" aria-label="Report sections"><p className="eyebrow">In this report</p><a href="#overview">Overview</a><a href="#drivers">Why this result</a><a href="#pathways">Housing pathways</a><a href="#unknowns">Unknowns</a><a href="#evidence">Evidence & records</a><div className="rail-facts"><span>Zoning <strong className={`score-${score.zoningRag.toLowerCase()}`}>{score.zoningRag}</strong></span><span>Environment <strong className={`score-${score.environmentalGeotechnicalRag.toLowerCase()}`}>{score.environmentalGeotechnicalRag}</strong></span><span>Historic / condition <strong className={`score-${score.historicConditionRag.toLowerCase()}`}>{score.historicConditionRag}</strong></span><span>Evidence <strong>{score.evidenceConfidence}</strong></span></div></aside>
+          <aside className="report-rail" aria-label="Report sections"><p className="eyebrow">In this report</p><a href="#overview">Overview</a><a href="#drivers">Review tasks and maps</a><a href="#pathways">Housing pathways</a><a href="#unknowns">Unknowns</a><a href="#evidence">Evidence & records</a><div className="rail-facts"><span>Screen <strong className={`score-${scorecard.screeningRag.toLowerCase()}`}>{scorecard.screeningRag}</strong></span><span>Housing path <strong>{scorecard.pathwaySummary.replaceAll('_', ' ')}</strong></span><span>Project feasibility <strong>Not assessed</strong></span></div></aside>
         </div>
       </div>
     </main>
   )
 }
 
-function Finding({ driver, explanation }: { driver: Barrier; explanation?: { explanation: string; nextStep: string } }) {
-  return <article className={`finding finding-${driver.severity}`}><div className="finding-top"><span className="finding-number">{driver.severity === 'high' ? 'Major constraint' : 'Review item'}</span><strong>{driver.title}</strong></div><p><b>Observed:</b> {driver.detail}</p>{explanation && <p><b>Why it matters:</b> {explanation.explanation}</p>}<p><b>Next check:</b> {explanation?.nextStep ?? driver.nextStep}</p><div className="finding-source">{driver.source.url ? <a href={driver.source.url} target="_blank" rel="noreferrer">{driver.source.name} ↗</a> : driver.source.name}<span>{driver.source.field}: {driver.source.value}</span></div></article>
-}
-
 function explanationInput(report: ParcelReport) {
-  const { score } = report
+  const { scorecard } = report
   return {
     pin: report.pin,
-    scoreVersion: score.scoreVersion,
-    ruleVersion: score.ruleVersion,
-    overallResult: score.overallResult,
+    scoreVersion: scorecard.scoreVersion,
+    ruleVersion: scorecard.ruleVersions.join(', '),
+    screeningRag: scorecard.screeningRag,
+    pathwaySummary: scorecard.pathwaySummary,
     fallbackSummary: report.fallbackSummary,
-    drivers: score.drivers.map((driver) => ({ id: driver.id, title: driver.title, detail: driver.detail, nextStep: driver.nextStep, source: { name: driver.source.name, field: driver.source.field, value: driver.source.value, url: driver.source.url } })),
-    missingRequired: score.missingRequired,
+    constraints: scorecard.mappedConstraints,
+    reviewTasks: scorecard.reviewTasks,
+    evidenceGaps: scorecard.evidenceGaps,
   }
 }
