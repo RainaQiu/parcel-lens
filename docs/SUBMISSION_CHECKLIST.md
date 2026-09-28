@@ -1,6 +1,6 @@
 # Parcel Lens submission checklist
 
-Use this page to fill the final AI Horizons 2026 submission form. The only missing item should be the public 3-5 minute demo video link.
+Use this page to fill the final AI Horizons 2026 submission form. The public demo video link is now included; team identity and eligibility fields still need final confirmation.
 
 ## Track and project information
 
@@ -11,7 +11,7 @@ Use this page to fill the final AI Horizons 2026 submission form. The only missi
 | Live app link | https://parcel-lens.jessexu.me/ |
 | Public repository link | https://github.com/RainaQiu/parcel-lens |
 | Data sources list | https://drive.google.com/file/d/1Wt7jxbjZ7AaW9NqhbDwalay16AgWrn_7/view?usp=drive_link |
-| Demo video link | TODO: add the public YouTube or viewable video link after recording |
+| Demo video link | https://www.youtube.com/watch?v=oJnOV07CfEM |
 | Team name | TODO: fill final team name |
 | Team members | TODO: fill all member names, emails, and schools or organizations |
 | Over 18 attestation | Confirm that all team members are 18 or older before submitting |
@@ -84,7 +84,7 @@ If we continued building Parcel Lens, we would validate the scorecard with local
 | Track selection | Ready |
 | Project title | Ready |
 | Project description | Ready |
-| 3-5 minute demo video link | TODO |
+| 3-5 minute demo video link | Ready: https://www.youtube.com/watch?v=oJnOV07CfEM |
 | Live app URL | Ready |
 | Public repository URL | Ready |
 | Data sources list | Ready: https://drive.google.com/file/d/1Wt7jxbjZ7AaW9NqhbDwalay16AgWrn_7/view?usp=drive_link |

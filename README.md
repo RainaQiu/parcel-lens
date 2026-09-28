@@ -11,7 +11,7 @@ Search by a 16-character county PIN, choose an address candidate, or click a map
 - **Live app:** <https://parcel-lens.jessexu.me/>
 - **Repository:** <https://github.com/RainaQiu/parcel-lens>
 - **Data sources list:** [public Google Drive file](https://drive.google.com/file/d/1Wt7jxbjZ7AaW9NqhbDwalay16AgWrn_7/view?usp=drive_link) and [repo CSV](docs/data_sources_used.csv)
-- **Demo video:** to be added before submission
+- **Demo video:** [YouTube demo](https://www.youtube.com/watch?v=oJnOV07CfEM)
 - **Submission checklist:** [docs/SUBMISSION_CHECKLIST.md](docs/SUBMISSION_CHECKLIST.md)
 
 Parcel Lens answers an early due-diligence question: **is this parcel worth another human review pass, and what should be verified next?** It combines parcel search, public GIS and record evidence, a deterministic four-level screening grade, side-by-side parcel comparison, a scoring rubric, and an optional LLM assistant that explains the report without changing the score.
